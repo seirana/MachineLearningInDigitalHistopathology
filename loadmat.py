@@ -9,13 +9,14 @@ from PIL import Image
 from skimage.filters import threshold_isodata
 from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
 import matplotlib.patches as patches
-import Image_Properties as IMG
-import math
+import math 
+import Image_Properties as IMG ##mine
+#import Random_Rotation_Mirroring as RRM ##mine
 
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
-result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"    
+result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"
+
 IMG.slide_properties(img_addrs, result_addrs)
-seirana = 0
 
 img_info = list()
 img_info.append(["FileName", "levelCount", "levelDimension", "objct_num", "objct_list", "resize", "vertical overlap", "horisental overlap"])
@@ -58,13 +59,13 @@ for file in sorted(os.listdir(img_addrs)):
                     else: 
                         gray_scale[i][j] = 0 
             
+            
             ##apply binary morphological filters on the image(opening, dilation, closing) and save it
             selem = disk(6) 
             opened = opening(gray_scale, selem)
             dilated = dilation(opened, selem)
             closed = closing(dilated, selem)
-            
-        
+                    
             tst = []
             for j in range(0,arr[1]):
                 tst.append(0)
@@ -88,8 +89,7 @@ for file in sorted(os.listdir(img_addrs)):
                         if org_gray_scale[i][j] >= iso_thresh:
                             org_gray_scale[i][j]  = iso_thresh-1 
             else:
-                correct_thresh = True
-                
+                correct_thresh = True                
                       
         gray_scale = np.copy(closed) 
         cv2.imwrite(result_addrs + file_name + '_(2)edited_isodata.jpg', gray_scale) 
@@ -140,8 +140,7 @@ for file in sorted(os.listdir(img_addrs)):
                 if contours[i][j][0][0] < mini:
                     mini = contours[i][j][0][0]
                     
-            numH = maxi-mini+1 
-            
+            numH = maxi-mini+1             
             
             minj = max(levelDimension[img_th][0], levelDimension[img_th][1])
             maxj = 0
@@ -152,8 +151,7 @@ for file in sorted(os.listdir(img_addrs)):
                 if contours[i][j][0][1] < minj:
                     minj = contours[i][j][0][1]
                     
-            numW = maxj-minj+1  
-     
+            numW = maxj-minj+1       
      
             tr = levelDimension[img_th][0] * levelDimension[img_th][1]
             if numH*numW < 0.001 * tr:
@@ -168,8 +166,7 @@ for file in sorted(os.listdir(img_addrs)):
                             gray_scale[n][m] = 0   
                   
         cv2.imwrite(result_addrs + file_name + '_(4)omited_small_contours.jpg', gray_scale)
-           
-           
+                    
                 
         ##trace the image to find the object zones (sweep the columns)
         sz = np.shape(gray_scale)
@@ -280,7 +277,6 @@ for file in sorted(os.listdir(img_addrs)):
         if list_size < 1:
             print "The search was not successfull to find any object for this file: ", file            
             continue
-
                
                        
         ##drow a convex hall around each object and save it
@@ -291,8 +287,7 @@ for file in sorted(os.listdir(img_addrs)):
                 for j in range(objct_list[k][2], objct_list[k][3]+1):
                     mat[i][j] = gray_scale[i][j]
                     
-            chull = convex_hull_image(mat)
-            
+            chull = convex_hull_image(mat)            
                                 
             for i in range(objct_list[k][0], objct_list[k][1]+1):
                 for j in range(objct_list[k][2], objct_list[k][3]+1):
@@ -305,7 +300,7 @@ for file in sorted(os.listdir(img_addrs)):
         del(chull)
            
             
-        ##resize the image
+        ##define the new image size (resizing)
         print "There are different magnification levels,"
         for i in range(0, img_th): 
             print "level ", i, ":", levelDimension[i]
@@ -334,8 +329,7 @@ for file in sorted(os.listdir(img_addrs)):
         if type(resize_) != int:
             print "resize_ is not integer!"
             continue   
-        
-        
+                
         max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
         if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
             max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)
@@ -344,9 +338,9 @@ for file in sorted(os.listdir(img_addrs)):
                 max_pos_patch_sz = resize_ * (objct_list[i][1] - objct_list[i][0]+1)
             if max_pos_patch_sz > resize_ * (objct_list[i][3] - objct_list[i][2]+1):
                 max_pos_patch_sz = resize_ * (objct_list[i][3] - objct_list[i][2]+1)            
-            
+          
                
-        ###define a patch size
+        ##define a patch size
         if max_pos_patch_sz > 24:
             mini = 10
         else:
@@ -374,11 +368,10 @@ for file in sorted(os.listdir(img_addrs)):
             for ch in inpt:
                 sm = sm + ord(ch) 
                 
-        patch_size = int(inpt)
-        
+        patch_size = int(inpt)        
         
           
-        ###overlap size for the patches
+        ##overlap size for the patches(horisental and vertical)
         #inpt = raw_input("Please insert the horisental_overlaping percentage:(between 0 and 99) ")
         #inpt = str(random.randint(0, 99))
         inpt = str(0)
@@ -405,9 +398,7 @@ for file in sorted(os.listdir(img_addrs)):
         hor_ovlap = int(int(inpt)*patch_size/100)
         
         if hor_ovlap == patch_size:
-            hor_ovlap = hor_ovlap-1
-            
-                   
+            hor_ovlap = hor_ovlap-1  
         
         #inpt = raw_input("Please insert the vertical_overlaping percentage:(between 0 and 99) ")
         inpt = str(random.randint(0,99))
@@ -436,28 +427,21 @@ for file in sorted(os.listdir(img_addrs)):
            
         if ver_ovlap == patch_size:
             ver_ovlap = ver_ovlap-1
-        #  
-        #import psutil
+
         
         ##trace objects of the image based on the patches        
-        per_ = 80 / 100 ##minimum coverage of the convex hull by the patches
+        per_ = 80 / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles
         patch_list = list()
         patch_info = list()
         
         cntr = 0
         for n in range(0, objct_num): 
             
-            ##resize the object from img_th to desired level
-            tmp_mat = np.zeros(shape=(objct_list[n][1]- objct_list[n][0]+1, objct_list[n][3]- objct_list[n][2]+1))
-            for i in range(0, objct_list[n][1]- objct_list[n][0]+1):
-                for j in range(0, objct_list[n][3]- objct_list[n][2]+1):
-                    tmp_mat[i][j] = gray_scale[objct_list[n][0]+i][objct_list[n][2]+j]
-            
+            ##resize the object(s) from img_th to desired level
+            tmp_mat = gray_scale[objct_list[n][0]:objct_list[n][1]+1, objct_list[n][2]:objct_list[n][3]+1]            
             resized_matrix = np.repeat(np.repeat(tmp_mat, resize_, axis=0), resize_, axis=1) 
             del(tmp_mat)
 
-
-            print "I am here!", n, "of", objct_num
             ##read the object in the max. magnification level
             heigth_ = (objct_list[n][1]- objct_list[n][0]+1)*resize_ 
             width_ = (objct_list[n][3]- objct_list[n][2]+1)*resize_ 
@@ -467,11 +451,13 @@ for file in sorted(os.listdir(img_addrs)):
             if heigth_  * width_  < 2**28:
                 tmp_img = slide.read_region((leftup_j, leftup_i), 0, (width_, heigth_))
                 max_mag_lev_obj = np.array(tmp_img)
+                del(tmp_img)
             else:
                 x_ = int(math.ceil(heigth_*width_/2**28))  
                 new_heigth_ = int(math.ceil(heigth_/x_))
                 tmp_img = slide.read_region((leftup_j, leftup_i), 0, (width_, new_heigth_))
                 max_mag_lev_obj = np.array(tmp_img) 
+                del(tmp_img)
                 
                 if x_ > 2:
                     for i in range(1,x_-1):
@@ -484,91 +470,35 @@ for file in sorted(os.listdir(img_addrs)):
                 max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)  
                         
             for i in range(0,int((heigth_ - ver_ovlap) / (patch_size - ver_ovlap))):
-                for j in range(0,int((width_ - hor_ovlap) / (patch_size - hor_ovlap))):
+                for j in range(0,int((width_ - hor_ovlap) / (patch_size - hor_ovlap))): 
+                    tmp = max_mag_lev_obj[(patch_size - ver_ovlap)*i:(patch_size - ver_ovlap)*i+patch_size,(patch_size - hor_ovlap)*j:(patch_size - hor_ovlap)*j+patch_size]
                     
-                    w = 0
-                    tmp = [[-1 for x in range(0,patch_size)] for y in range(0,patch_size)]
-                    non_cov_patch = False
-                    
-                    for ip in range((patch_size - ver_ovlap)*i, (patch_size - ver_ovlap)*i+patch_size):
-                        for jp in range((patch_size - hor_ovlap)*j, (patch_size - hor_ovlap)*j+patch_size):
-                            tmp[ip % patch_size][jp % patch_size] = max_mag_lev_obj[ip][jp]
-                            if resized_matrix[ip][jp] == 0:
-                                w = w+1                                 
-                                #check this line  ##check the coverage condition for the patch, to make all patches in the min. possible time                               
-                                if (patch_size - (ip % patch_size)) * patch_size + (patch_size - (jp % patch_size))+ w <= per_ * patch_size * patch_size:
-                                    non_cov_patch = True
-                                    break
-                                
-                        if non_cov_patch == True:
-                            break
+                    #check this line  ##check the coverage condition for the patch, to make all patches in the min. possible time 
+                    summation = np.sum(resized_matrix[(patch_size - ver_ovlap)*i:(patch_size - ver_ovlap)*i+patch_size,(patch_size - hor_ovlap)*j:(patch_size - hor_ovlap)*j+patch_size])
+                    if summation <= per_ * (patch_size ** 2):
+                        break  
+                    else:
+                        patch_list.append(tmp)
+                        patch_info.append([n, i ,j])         
 
-                    if non_cov_patch == False and w >= per_ * patch_size * patch_size:
-                        cntr = cntr+1;
-                        if n == 0 and cntr == 1:
-                            patch_list = tmp
-                            file_Name = result_addrs + file_name + "_patch_list"
-                            np.save(file_Name, patch_list)                        
-                            #patch_list.close()
-                        else:
-                            patch_list = np.vstack([patch_list,tmp])                        
-                            file_Name = result_addrs + file_name + "_patch_list"
-                            np.save(file_Name, patch_list)                        
-                            #patch_list.close()
-                            
-                        patch_info.append([n, i ,j])
-
-                        #pid = os.getpid()
-                        #py = psutil.Process(pid)
-                        #memoryUse = py.memory_info()[0]/2.**30  # memory use in GB...I think
-                        #print('memory use:', memoryUse)
-                        #print i , j
-                    
-            
         ##save the patch list to a file
+        file_Name = result_addrs + file_name + "_patch_list"
+        np.save(file_Name, patch_list)                  
         file_Name = result_addrs + file_name + "_patch_info"
         np.save(file_Name, patch_info) 
-        patch_list = np.load(file_Name + '.npy')
-        print np.shape(patchlist), np.shape(patch_info)
-        
-        ##save image information to the file
+        del(tmp)
+        del(patch_list)  
+        del(patch_info)
+        del(resized_matrix)
         img_info.append([file_name, levelCount, levelDimension, img_th, objct_num, objct_list, resize_, patch_size, ver_ovlap, hor_ovlap])
         plt.close('all')
-        seirana = seirana+1
-        print seirana, file_name
         
-
-        
+                
 ##save the information for the the images in a file
 file_Name = result_addrs + "Images_INFO"
 np.save(file_Name, fileObject)
 
-
-#class random_rot_mirr:
-
-    ###rotate a patch randomly
-    #i = random.randint(0, 7)
-    
-    #if i == 0:
-        #rand_rot_mirr = np.rot90(patch_, k=0)
-    #if i == 1:
-        #rand_rot_mirr = np.rot90(patch_, k=1)
-    #if i == 2:
-        #rand_rot_mirr = np.rot90(patch_, k=2)
-    #if i == 3:
-        #rand_rot_mirr = np.rot90(patch_, k=3)
-    #if i == 4:
-        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=0))
-    #if i == 5:
-        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=1))
-    #if i == 6:
-        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=2))
-    #if i == 7:
-        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=3))
-        
-    #return rand_rot_mirr
-
-
+#patch_ = RRM.random_rot_mirr(patch_)
 
 ## in progress
 #class get_patch:    
