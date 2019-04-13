@@ -23,8 +23,8 @@ from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 import numpy as np
 import math
+from patch_production import patch_prod
 from patch_batch_generator import patches_for_batches
-
 
 ##Loading the data
 """
@@ -124,12 +124,12 @@ autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
         
-###The forth block of encoder will have 32 filters of size 3 x 3
-#autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
-#autoencoder.add(BatchNormalization())
-#autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
-#autoencoder.add(BatchNormalization())
-#autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
+##The forth block of encoder will have 32 filters of size 3 x 3
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
 
 ##The final block of encoder will have 32 filters of size 3 x 3
 autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
@@ -143,12 +143,12 @@ autoencoder.add(BatchNormalization(name = "code"))
     followed a batch normalization layer. 
     Upsampling layer is used after the first and second convolution blocks.
 """
-###The first block will have 32 filters of size 3 x 3 followed by a upsampling layer
-#autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
-#autoencoder.add(BatchNormalization())
-#autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
-#autoencoder.add(BatchNormalization())
-#autoencoder.add(UpSampling2D((2,2)))
+##The first block will have 32 filters of size 3 x 3 followed by a upsampling layer
+autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(UpSampling2D((2,2)))
 
 ##The second block will have 16 filters of size 3 x 3 followed by a upsampling layer    
 autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
@@ -241,6 +241,8 @@ use_multiprocessing: Boolean. If True, use process-based threading.
     this implementation relies on multiprocessing, you should not pass non-picklable 
     arguments to the generator as they can't be passed easily to children processes.    
 '''
+patch_prod(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap, hor_ovlap, per, information)
+
 def generate_arrays_from_file(path):
     while 1:
     f = open(path)

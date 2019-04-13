@@ -5,113 +5,86 @@ import openslide
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import math
 from skimage.filters import threshold_isodata
 from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
 
-def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap, hor_ovlap, per, information, pixel_info):
-    
+def Preprocessing(img_addrs, result_addrs, file, information):
     
     slide = openslide.OpenSlide(img_addrs + file)
     file_name = file.replace('.ndpi','')
     levelCount = slide.level_count
     levelDimension = slide.level_dimensions
     
-    info_gathering = list()    
+    info_gathering = list()
     info_gathering.append(file_name)
     info_gathering.append(levelCount)
     info_gathering.append(levelDimension)
-    
     
     '''
     define a new function
     '''
     ##read the image in desired level, convert it to gray scale and save it as a .jpeg file
-    def Build_jpeg_image(information,pixel_info, info_gathering):
-        for i in range(0,levelCount):
-            if levelDimension[levelCount-i-1][0] > 2000 and levelDimension[levelCount-i-1][1] > 1000:
-                break
+    def Build_jpeg_image(information, info_gathering):
+        if levelCount >= 6:
+            img_th = 5 # extract grayscale images of level 5th slides, Max level = level 0
+            img = slide.get_thumbnail(levelDimension[img_th])
+            image = np.array(img)
+            info_gathering.append(img_th)
             
-        img_th = levelCount-i-1
-        img = slide.get_thumbnail(levelDimension[img_th])
-        image = np.array(img)
-        info_gathering.append(img_th)
-        del(img) 
-        
-        gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)                
-        cv2.imwrite(result_addrs + file_name + '_(1)gray_scale.jpg', gray_scale)
-        org_gray_scale = np.copy(gray_scale)
-        arr = np.shape(gray_scale)
-        pixel = np.zeros(shape=(1,256))
-        for i in range(0,arr[0]):
-            for j in range(0,arr[1]):
-                pixel[0][gray_scale[i][j]] += 1
-    
-        back_ground = max(pixel[0,:])
-        for i in range(0,256):
-            if pixel[0][i] == back_ground:
-                bg_pixel = i
-                break
-            
-        for i in range(0,arr[0]):
-            for j in range(0,arr[1]):
-                if gray_scale[i][j] > 230:
-                    gray_scale[i][j] = bg_pixel #to change too much light pixels to the color of background
-                if gray_scale[i][j] < 50:
-                    gray_scale[i][j] = bg_pixel #to change too much dark pixels to the color of background                     
-
-        cv2.imwrite(result_addrs + file_name + '_(2)Normalized_gray_scale.jpg', gray_scale)
-        information,pixel_info = isodata(information, pixel_info, info_gathering, gray_scale, img_th, org_gray_scale, arr)
-        return information,pixel_info
-       
-       
-    '''
-    define a new function
-    '''
-    ##find and apply isodata threshold on the image 
-    def isodata(information, pixel_info, info_gathering, gray_scale, img_th, org_gray_scale, arr):        
-        correct_thresh = False
-        while correct_thresh == False:
-            iso_thresh = threshold_isodata(gray_scale)
-            
+            gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)                
+            cv2.imwrite(result_addrs + file_name + '_(1)gray_scale.jpg', gray_scale)
+            org_gray_scale = np.copy(gray_scale)
+            arr = np.shape(gray_scale)
             pixel = np.zeros(shape=(1,256))
             for i in range(0,arr[0]):
                 for j in range(0,arr[1]):
                     pixel[0][gray_scale[i][j]] += 1
         
-            for i in range(0,256):
-                pixel[0][i] = pixel[0][i]/arr[0]*arr[1]
-        
             back_ground = max(pixel[0,:])
-            
-            mn = 0
-            for i in range(0,iso_thresh):
-                mn += pixel[0][i]
-            mx = 0
-            for i in range(iso_thresh,255):
-                mx += pixel[0][i]
+            for i in range(0,256):
+                if pixel[0][i] == back_ground:
+                    bg_pixel = i
+                    break
                 
-            sm = mn+mx
-            pixel_info.append([file_name, iso_thresh, mn/sm, mx/sm, back_ground])
-            
             for i in range(0,arr[0]):
                 for j in range(0,arr[1]):
-                    if gray_scale[i][j] >= iso_thresh:
-                        gray_scale[i][j] = 255
-                    else:
-                        gray_scale[i][j] = 0
+                    if gray_scale[i][j] > 230:
+                        gray_scale[i][j] = bg_pixel #to change too much light pixels to the color of background
+                    if gray_scale[i][j] < 50:
+                        gray_scale[i][j] = bg_pixel #to change too much dark pixels to the color of background                     
+    
+            cv2.imwrite(result_addrs + file_name + '_(2)normalized_gray_scale.jpg', gray_scale)
+            plt.close('all')
+            information = isodata(information, info_gathering, gray_scale, img_th, org_gray_scale, arr)
+            return information
             
-            ##apply binary morphological filters on the image(opening, dilation, closing) and save it
-            selem = disk(6) 
-            opened = opening(gray_scale, selem)
-            dilated = dilation(opened, selem)
-            closed = closing(dilated, selem)
+        else:
+            return information
+           
+    '''
+    define a new function
+    '''
+    ##find and apply isodata threshold on the image 
+    def isodata(information, info_gathering, gray_scale, img_th, org_gray_scale, arr):
+        #rearches for two-color backgrounds if still there are and omit them 
+        correct_thresh = False
+        while correct_thresh == False:
+            iso_thresh = threshold_isodata(gray_scale)
+           
+           #make a coly of gray scale with two colors, 0 & 255
+            check_rec = np.copy(gray_scale) 
+            for i in range(0,arr[0]):
+                for j in range(0,arr[1]):
+                    if check_rec[i][j] >= iso_thresh:
+                        check_rec[i][j] = 255
+                    else:
+                        check_rec[i][j] = 0
                         
             tst = []
             for j in range(0,arr[1]):
                 tst.append(0)
                 for i in range(0,arr[0]):
-                    tst[j] = tst[j] + gray_scale[i][j]
+                    tst[j] = tst[j] + check_rec[i][j]
                     
             sz = int(0.1 * arr[1])
             tmp = 0
@@ -123,26 +96,60 @@ def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap
                 if tmp == 0:
                     rec_ = 1
                     break
-                
+            
+            #change the color of lighter background to the darker one
             if rec_ == 1:
                 for i in range(0,levelDimension[img_th][1]):
                     for j in range(0,levelDimension[img_th][0]):
-                        if org_gray_scale[i][j] >= iso_thresh:
-                            org_gray_scale[i][j]  = iso_thresh-1
+                        if gray_scale[i][j] >= iso_thresh:
+                            gray_scale[i][j]  = iso_thresh-1
             else:
                 correct_thresh = True
-                  
+                
+        iso_thresh = threshold_isodata(gray_scale) #calculate the new threshhold for the gray scale image
+        
+        #make a copy of gray scale, with two colors, 0 & 255
+        for i in range(0,arr[0]):
+            for j in range(0,arr[1]):
+                if gray_scale[i][j] >= iso_thresh:
+                    gray_scale[i][j] = 255
+                else:
+                    gray_scale[i][j] = 0
+      
+        pixel = np.zeros(shape=(1,256))
+        for i in range(0,arr[0]):
+            for j in range(0,arr[1]):
+                pixel[0][gray_scale[i][j]] += 1
+           
+        back_ground = max(pixel[0,:])
+        for i in range(0,256):
+            if pixel[0][i] == back_ground:
+                bg_pixel = i
+                break 
+            
+        ##apply binary morphological filters on the image(opening, dilation, closing) and save it
+        selem = disk(6)
+        opened = opening(gray_scale, selem)
+        dilated = dilation(opened, selem)
+        closed = closing(dilated, selem)          
         gray_scale = np.copy(closed)
+        
         cv2.imwrite(result_addrs + file_name + '_(3)edited_isodata.jpg', gray_scale)
-        information, pixel_info = boundries(information, info_gathering, gray_scale, img_th)
-        return information, pixel_info
-
+        np.save(result_addrs + file_name + '_grayscale', gray_scale)
+        plt.close('all')
+        info_gathering.append(iso_thresh)
+        info_gathering.append(bg_pixel)
+        
+        ##calling the next function
+        information = boundries(information, info_gathering, gray_scale, img_th)
+        return information
    
     '''
     define a new function
     '''
     ##find boundries of the objects in the image and save it
     def boundries(information, info_gathering, gray_scale, img_th):
+        #change black to white & white to black in the gray scale image
         mat = np.copy(gray_scale)
         for i in range(0,levelDimension[img_th][1]):
             for j in range(0,levelDimension[img_th][0]):
@@ -151,6 +158,7 @@ def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap
                 else:
                     mat[i][j] = 0
                     
+        #drow boundries around the objects
         for i in range(1,levelDimension[img_th][1]-1):
             for j in range(1,levelDimension[img_th][0]-1):
                 if gray_scale[i][j] == 0:
@@ -165,11 +173,12 @@ def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap
                         mat[i][j] = 255
         
         gray_scale = np.copy(mat)
+        
         cv2.imwrite(result_addrs + file_name + '_(4)boundries.jpg', gray_scale)
+        plt.close('all')
         ##calling the next function
         information = contours_counting(information, info_gathering, gray_scale, img_th)
         return information
-        
         
     '''
     define a new function
@@ -216,6 +225,8 @@ def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap
                             gray_scale[n][m] = 0
                   
         cv2.imwrite(result_addrs + file_name + '_(5)omited_small_contours.jpg', gray_scale)
+
+
         ##calling the next function
         information = object_zones_horizontal(information, info_gathering, gray_scale, img_th)
         return information
@@ -336,7 +347,6 @@ def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap
             
                                         del objct_list[objct_num]
                                         objct_num = objct_num-1
-
                                 
         objct_num = objct_num+1
         info_gathering.append(objct_num)
@@ -344,17 +354,18 @@ def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap
         list_size = len(objct_list)
         if list_size < 1:
             print ("The search was not successfull to find any object for this file: ", file_name)
-            return information
-        ##calling the next function    
-        information =  covex_hall(information, info_gathering, gray_scale, img_th, objct_list, objct_num, list_size) 
-        return information
-
+        else:
+            ##calling the next function    
+            covex_hall(info_gathering, gray_scale, img_th, objct_list, objct_num, list_size) 
         
+        information.append(np.asarray(info_gathering,dtype= object))
+        return information
+     
     '''
     define a new function
     '''
     ##drow a convex hall around each object and save it
-    def covex_hall(information, info_gathering, gray_scale, img_th, objct_list, objct_num, list_size):
+    def covex_hall(info_gathering, gray_scale, img_th, objct_list, objct_num, list_size):
         for k in range(0,objct_num):
             mat = np.zeros(shape=(levelDimension[img_th][1],levelDimension[img_th][0]))
             
@@ -372,112 +383,9 @@ def Preprocessing(img_addrs, result_addrs, file, img_size, patch_size, ver_ovlap
                         gray_scale[i][j] = 255
                         
         cv2.imwrite(result_addrs + file_name + '_(6)convex_hull.jpg', gray_scale)
-        ##calling the next function
-        information = build_high_resolusion_image_and_extrace_patches(information, info_gathering, gray_scale, img_th, objct_list, objct_num, list_size)
-        return information
-    
-    
-    '''
-    define a new function
-    '''    
-    ##define the new image size (resizing)
-    def build_high_resolusion_image_and_extrace_patches(information, info_gatherin, gray_scale, img_th, objct_list, objct_num, list_size):
-        patch_info = list()
-        if img_size < img_th:
-            print("selected dimension level is smaller than the bacis level dimension then resizeig minimizes the image size.")
-            return information
-        else:
-            resize_ = levelDimension[int(img_size)][0]/levelDimension[img_th][0]
-            
-        info_gathering.append(resize_)
-        
-        if math.floor(resize_) < resize_:
-            print ("resize_ is not integer!")
-            return information
-                
-        max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
-        if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
-            max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)
-        for i in range(1, list_size):
-            if max_pos_patch_sz > resize_ * (objct_list[i][1] - objct_list[i][0]+1):
-                max_pos_patch_sz = resize_ * (objct_list[i][1] - objct_list[i][0]+1)
-            if max_pos_patch_sz > resize_ * (objct_list[i][3] - objct_list[i][2]+1):
-                max_pos_patch_sz = resize_ * (objct_list[i][3] - objct_list[i][2]+1)
-                
-        if patch_size >=  max_pos_patch_sz:
-            print ("Patchsize must be smaller than:", max_pos_patch_sz)
-            return information
-        
-        sz_list = 0
-        patch_list = list()
-        ls = 0
-        for n in range(0, objct_num):
-            
-            ##resize the object(s) from img_th to desired level
-            tmp_mat = gray_scale[objct_list[n][0]:objct_list[n][1]+1, objct_list[n][2]:objct_list[n][3]+1]
-            resized_matrix = np.repeat(np.repeat(tmp_mat, resize_, axis=0), resize_, axis=1)
-            del(tmp_mat)
-
-            ##read the object in the max. magnification level
-            heigth_ = int((objct_list[n][1]- objct_list[n][0]+1)*resize_)
-            width_ = int((objct_list[n][3]- objct_list[n][2]+1)*resize_)
-            leftup_i = int(objct_list[n][0]*resize_)
-            leftup_j = int(objct_list[n][2]*resize_)
-            
-            if heigth_ * width_  < 2**28:
-                tmp_img = slide.read_region((leftup_j, leftup_i), 0, (width_, heigth_))
-                max_mag_lev_obj = np.array(tmp_img)
-                del(tmp_img)
-            else:
-                x_ = int(math.ceil(heigth_*width_/2**28))
-                new_heigth_ = int(math.ceil(heigth_/x_))
-                tmp_img = slide.read_region((leftup_j, leftup_i), 0, (width_, new_heigth_))
-                max_mag_lev_obj = np.array(tmp_img)
-                del(tmp_img)
-                
-                if x_ > 2:
-                    for i in range(1,x_-1):
-                        tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*i), 0, (width_, new_heigth_))
-                        t_mat= np.array(tmp_img)
-                        max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)
-           
-                tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*(x_-1)), 0, (width_, heigth_-new_heigth_*(x_-1)))
-                t_mat= np.array(tmp_img)
-                max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)
-                        
-            for i in range(0,int((heigth_ - ver_ovlap) / (patch_size - ver_ovlap))):
-                for j in range(0,int((width_ - hor_ovlap) / (patch_size - hor_ovlap))):
-                    tmp = max_mag_lev_obj[(patch_size - ver_ovlap)*i:(patch_size - ver_ovlap)*i+patch_size,(patch_size - hor_ovlap)*j:(patch_size - hor_ovlap)*j+patch_size]
-                    
-                    summation = np.sum(resized_matrix[(patch_size - ver_ovlap)*i:(patch_size - ver_ovlap)*i+patch_size,(patch_size - hor_ovlap)*j:(patch_size - hor_ovlap)*j+patch_size])
-                    if summation <= per * (patch_size ** 2):
-                        break
-                    else:
-                        if len(patch_list) > ((2**31)/((patch_size**2)*3)):#len(patch_list) > ((5*(10**8))/(patch_size**2)): #images are RGBA(4D) #the size of the matrix should be less than 4GB
-                            file_Name = result_addrs + file_name + "_patch_list" + str(ls)
-                            np.save(file_Name, np.asarray(patch_list,dtype= object))
-                            ls += 1
-                            sz_list += len(patch_list)
-                            patch_list = list()
-                            alpha_remov = tmp[:,:,0:3] #remove alpha channel
-                            patch_list.append(alpha_remov)
-                        
-                        
-                        alpha_remov = tmp[:,:,0:3]
-                        patch_list.append(alpha_remov) #remove alpha chnnel
-                        patch_info.append([n, objct_list[n][0]*resize_+(patch_size - ver_ovlap)*i, objct_list[n][2]*resize_+(patch_size - hor_ovlap)*j])
-                        
-        ##save the patch list and info to the files
-        file_Name = result_addrs + file_name + "_patch_list" + str(ls)     
-        np.save(file_Name, np.asarray(patch_list,dtype= object))
-        file_Name = result_addrs + file_name + "_patch_info"
-        np.save(file_Name, np.asarray(patch_info,dtype= object))
-        sz_list += len(patch_list)
-        
-        info_gathering.append(sz_list)
-        information.append(np.asarray(info_gathering,dtype= object))
+        np.save(result_addrs + file_name + "_convex_hull", gray_scale)
         plt.close('all')
-        return information
+        return
     
-    information, pixel_info = Build_jpeg_image(information, pixel_info, info_gathering)
-    return information, pixel_info    
+    information = Build_jpeg_image(information, info_gathering)
+    return information   
