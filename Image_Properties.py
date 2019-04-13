@@ -17,7 +17,7 @@ def slide_properties(img_addrs, result_addrs):
             levelCount = slide.level_count    
             levelDimension = slide.level_dimensions
             w0 = slide.properties.get(openslide.PROPERTY_NAME_QUICKHASH1)
-            w1 = slide.properties.get(openslide.PROPERTY_NAME_OBJECTIVE_POWER)
+            w1 = slide.properties.get(openslide.PROPERTY_NAME_OBJECTIVE_POWER)            
             w2 = slide.properties.get(openslide.PROPERTY_NAME_BACKGROUND_COLOR)
             w3 = slide.properties.get(openslide.PROPERTY_NAME_VENDOR)
             w4 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_WIDTH)

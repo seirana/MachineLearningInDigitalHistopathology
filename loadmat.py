@@ -206,72 +206,74 @@ for file in sorted(os.listdir(img_addrs)):
         ##trace the image to find the object zones (sweep the rows)
         objct_list = list()     
         objct_num = -1
-    
-        for n in range(0,num+1):            
-            cnt_pre = [0, 0, 0]
-            cnt = 0
-    
-            for i in range(0, sz[0]):                
-                tmp = cnt_pre
-                cnt_pre = [tmp[1], tmp[2], cnt]
+        if num > -1:
+            for n in range(0,num+1):            
+                cnt_pre = [0, 0, 0]
                 cnt = 0
-                for j in range(objct[n][0], objct[n][1]+1):
-                    if gray_scale[i][j] == 255:
-                        cnt = 1
-                        break
-    
-                if cnt == 1 and i < sz[0]-4:
-                    if cnt_pre[0] + cnt_pre[1] + cnt_pre[2] == 0:   
-                        objct_list.append([i, i, objct[n][0], objct[n][1]]) 
-                        objct_num = objct_num+1
-    
-                    else:
-                        nc = objct_list.pop()
-                        objct_list.append([nc[0], i, nc[2], nc[3]])
-    
-                else:
-                    if (cnt == 0 and cnt_pre[0] == 1 and cnt_pre[1] == 0 and cnt_pre[2] == 0) or (cnt == 1 and i > sz[0]-3):                     
-                        if (objct_list[objct_num][1] - objct_list[objct_num][0]) < (0.05 * sz[0]):
-                            for k in range(objct[n][0], objct[n][1]+1):
-                                for t in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
-                                    gray_scale[t][k] = 0 
-    
-                            del objct_list[objct_num]
-                            objct_num = objct_num-1
-    
+        
+                for i in range(0, sz[0]):                
+                    tmp = cnt_pre
+                    cnt_pre = [tmp[1], tmp[2], cnt]
+                    cnt = 0
+                    for j in range(objct[n][0], objct[n][1]+1):
+                        if gray_scale[i][j] == 255:
+                            cnt = 1
+                            break
+        
+                    if cnt == 1 and i < sz[0]-4:
+                        if cnt_pre[0] + cnt_pre[1] + cnt_pre[2] == 0:   
+                            objct_list.append([i, i, objct[n][0], objct[n][1]]) 
+                            objct_num = objct_num+1
+        
                         else:
-                            find = False
-                            for mi in range(objct_list[objct_num][2], objct_list[objct_num][3]+1):
-                                strt = objct_list[objct_num][2]                                
-                                for ni in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
-                                    if gray_scale[ni][mi] == 255:
-                                        strt = mi
-                                        find = True
-                                        break
-    
-                                if find == True:
-                                    break
-    
-                            find = False    
-                            for mi in range(objct_list[objct_num][3], strt-1, -1):
-                                nd = objct_list[objct_num][3]                                
-                                for ni in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
-                                    if gray_scale[ni][mi] == 255:
-                                        nd = mi
-                                        find = True
-                                        break
-    
-                                if find == True:
-                                    break                                    
-    
-                            if (nd - strt) < (0.05 * sz[1]):
-                                for t in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
-                                    for k in range(objct_list[objct_num][2], objct_list[objct_num][3]+1):
-                                        gray_scale[t][k] = 0                                         
-    
-                                del objct_list[objct_num]
-                                objct_num = objct_num-1  
-    
+                            nc = objct_list.pop()
+                            objct_list.append([nc[0], i, nc[2], nc[3]])
+        
+                    else:
+                        if (cnt == 0 and cnt_pre[0] == 1 and cnt_pre[1] == 0 and cnt_pre[2] == 0) or (cnt == 1 and i > sz[0]-3):
+                            if objct_num > -1:
+                                if (objct_list[objct_num][1] - objct_list[objct_num][0]) < (0.05 * sz[0]):
+                                    for k in range(objct[n][0], objct[n][1]+1):
+                                        for t in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
+                                            gray_scale[t][k] = 0 
+            
+                                    del objct_list[objct_num]
+                                    objct_num = objct_num-1
+            
+                                else:
+                                    find = False
+                                    for mi in range(objct_list[objct_num][2], objct_list[objct_num][3]+1):
+                                        strt = objct_list[objct_num][2]                                
+                                        for ni in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
+                                            if gray_scale[ni][mi] == 255:
+                                                strt = mi
+                                                find = True
+                                                break
+            
+                                        if find == True:
+                                            break
+            
+                                    find = False    
+                                    for mi in range(objct_list[objct_num][3], strt-1, -1):
+                                        nd = objct_list[objct_num][3]                                
+                                        for ni in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
+                                            if gray_scale[ni][mi] == 255:
+                                                nd = mi
+                                                find = True
+                                                break
+            
+                                        if find == True:
+                                            break                                    
+            
+                                    if (nd - strt) < (0.05 * sz[1]):
+                                        for t in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
+                                            for k in range(objct_list[objct_num][2], objct_list[objct_num][3]+1):
+                                                gray_scale[t][k] = 0                                         
+            
+                                        del objct_list[objct_num]
+                                        objct_num = objct_num-1  
+
+                                
         objct_num = objct_num+1
         list_size = len(objct_list)
         if list_size < 1:
@@ -502,7 +504,7 @@ for file in sorted(os.listdir(img_addrs)):
                 
 ##save the information for the the images in a file
 file_Name = result_addrs + "Images_INFO"
-np.save(file_Name, fileObject)
+np.save(file_Name, img_info)
 
 #patch_ = RRM.random_rot_mirr(patch_)
 
