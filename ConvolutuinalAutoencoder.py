@@ -19,10 +19,12 @@ measure the performance of the model.
 import os
 os.system('clear')
 
+from keras import Sequential
 from keras.layers import Input,Conv2D,MaxPooling2D,UpSampling2D
-from keras.layers.normalization import BatchNormalization
 from keras.models import Model
+from keras.layers.normalization import BatchNormalization
 from keras.optimizers import  RMSprop
+from keras import backend as K
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 
@@ -57,7 +59,7 @@ for i in range(0,3):
     m = np.max(images[:,:,:,i]) 
     mi = np.min(images[:,:,:,i])
     images[:,:,:,i] = (images[:,:,:,i] - mi) / (m - mi)
-    
+
 temp = np.zeros([shp[0],shp[1]-4,shp[2]-4,shp[3]]) #temp = np.zeros([shp[0],shp[1]+4,shp[2]+4,shp[3]]) 
 temp[:,:,:,:] = images[:,2:shp[1]-2,2:shp[2]-2,:] #temp[:,2:shp[1]+2,2:shp[2]+2,:] = images
 images = temp
@@ -93,8 +95,8 @@ plt.imshow(curr_img, cmap = 'gray')
 plt.savefig(img_addrs + 'tensorflow_images_(01_02)Train_Validation.jpg')
 
 ##The Convolutional Autoencoder!
-batch_size = 256
-epochs = 100#300
+batch_size_ = 256
+epochs_ = 300#300
 inChannel = 3
 x, y = shp[1], shp[2]
 input_img = Input(shape = (x, y, inChannel))
@@ -106,92 +108,89 @@ Max-pooling layer is used after the first and second convolution blocks.
 """
 ##encoder
 ##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
-def autoencoder(input_img):
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img) 
-    conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(32, (3,3), activation='relu', padding='same')(conv1)
-    conv1 = BatchNormalization()(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) 
+model = Sequential()
+model.add(Conv2D(32, (3, 3), activation='relu', padding='same')) 
+model.add(BatchNormalization())
+model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(MaxPooling2D(pool_size=(2, 2)))
     
-    ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-    conv2 = Conv2D(64, (3,3), activation='relu', padding='same')(pool1) 
-    conv2 = BatchNormalization()(conv2)
-    conv2 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv2)
-    conv2 = BatchNormalization()(conv2)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) 
+##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
+model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(Conv2D(64, ((3,3)), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(MaxPooling2D(pool_size=(2, 2))) 
        
-    ##The third block will have 64 filters of size 3 x 3, followed by another downsampling layer
-    conv3 = Conv2D(128, (3,3), activation='relu', padding='same')(pool2) 
-    conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv3)
-    conv3 = BatchNormalization()(conv3)
-    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3) 
+##The third block will have 64 filters of size 3 x 3, followed by another downsampling layer
+model.add(Conv2D(128, (3,3), activation='relu', padding='same')) 
+model.add(BatchNormalization())
+model.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(MaxPooling2D(pool_size=(2, 2))) 
         
-    ##The final block of encoder will have 128 filters of size 3 x 3
-    conv4 = Conv2D(256, ((3,3)), activation='relu', padding='same')(pool3) 
-    conv4 = BatchNormalization()(conv4)
-    conv4 = Conv2D(256, ((3,3)), activation='relu', padding='same')(conv4)
-    conv4 = BatchNormalization()(conv4)    
-    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4) 
-    #decoder
-    """
+ ##The final block of encoder will have 128 filters of size 3 x 3
+model.add(Conv2D(32, (3,3), activation='relu', padding='same')) 
+model.add(BatchNormalization())
+model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+model.add(BatchNormalization())    
+model.add(MaxPooling2D(pool_size=(2, 2))) 
+
+#decoder
+"""
     Decoder: It has 2 Convolution blocks, each block has a convolution layer 
     followed a batch normalization layer. 
     Upsampling layer is used after the first and second convolution blocks.
-    """
-    ##The first block will have 128 filters of size 3 x 3 followed by a upsampling layer
-    conv5 = Conv2D(256, ((3,3)), activation='relu', padding='same')(pool4) #7 x 7 x 128
-    conv5 = BatchNormalization()(conv5)
-    conv5 = Conv2D(256, ((3,3)), activation='relu', padding='same')(conv5)
-    conv5 = BatchNormalization()(conv5)
-    up0 = UpSampling2D((2,2))(conv5) 
+"""
+##The first block will have 128 filters of size 3 x 3 followed by a upsampling layer
+model.add(Conv2D(32, ((3,3)), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(Conv2D(32, ((3,3)), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(UpSampling2D((2,2)))
     
-    conv5 = Conv2D(128, ((3,3)), activation='relu', padding='same')(up0) #7 x 7 x 128
-    conv5 = BatchNormalization()(conv5)
-    conv5 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv5)
-    conv5 = BatchNormalization()(conv5)
-    up1 = UpSampling2D((2,2))(conv5) # 14 x 14 x 128
+model.add(Conv2D(16, ((3,3)), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(Conv2D(16, ((3,3)), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(UpSampling2D((2,2)))
     
-    ##The second block will have 128 filters of size 3 x 3 followed by a upsampling layer
-    conv6 = Conv2D(64, ((3,3)), activation='relu', padding='same')(up1) #7 x 7 x 128
-    conv6 = BatchNormalization()(conv6)
-    conv6 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv6)
-    conv6 = BatchNormalization()(conv6)
-    up2 = UpSampling2D((2,2))(conv6) # 14 x 14 x 128
+##The second block will have 128 filters of size 3 x 3 followed by a upsampling layer
+model.add(Conv2D(8, (3,3), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(Conv2D(8, (3,3), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(UpSampling2D((2,2)))
     
-    ##The third block will have 64 filters of size 3 x 3 followed by another upsampling layer
-    conv7 = Conv2D(32, ((3,3)), activation='relu', padding='same')(up2) # 14 x 14 x 64
-    conv7 = BatchNormalization()(conv7)
-    conv7 = Conv2D(32, ((3,3)), activation='relu', padding='same')(conv7)
-    conv7 = BatchNormalization()(conv7)
-    up3 = UpSampling2D((2,2))(conv7) # 28 x 28 x 64
+##The third block will have 64 filters of size 3 x 3 followed by another upsampling layer
+model.add(Conv2D(4, (3,3), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(Conv2D(4, (3,3), activation='relu', padding='same'))
+model.add(BatchNormalization())
+model.add(UpSampling2D((2,2)))
     
-    ##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
-    decoded = Conv2D(3, ((3,3)), activation='sigmoid', padding='same')(up3) # 28 x 28 x 1
-    return decoded
+##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
+model.add(Conv2D(3, (3,3), activation='sigmoid', padding='same'))
+last_layer = model.layers[-1] 
+autoencoder = Model(inputs=input_img, outputs=last_layer(input_img))
 
-autoencoder = Model(input_img, autoencoder(input_img))
-autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop(), metrics=['accuracy'])
+autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
 ##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
 autoencoder.summary()
 
 ##train the model with Keras' fit() function
-autoencoder_train = autoencoder.fit(train_X, train_ground, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(valid_X, valid_ground))
+autoencoder_train = autoencoder.fit(train_X, train_ground, batch_size=batch_size_,epochs=epochs_,verbose=1,validation_data=(valid_X, valid_ground))
 
-##plot the loss plot between training and validation data to visualise the model performance
-# summarize history for accuracy
-acc = autoencoder_train.history['acc']
-val_acc = autoencoder_train.history['val_acc']
-plt.figure()
-plt.plot(acc)
-plt.plot(val_acc)
-plt.title('model accuracy')
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-plt.savefig(img_addrs + 'tensorflow_images_(03)Accuracy.jpg')
+#get_3rd_layer_output = K.function([model.layers[0].input, K.learning_phase()],[model.layers[19].output])
+#
+## output in test mode = 0
+#layer_output = get_3rd_layer_output([x, 0])[0]
+#
+## output in train mode = 1
+#layer_output = get_3rd_layer_output([x, 1])[0]
 
+##plot the loss plot between training 
 # summarize history for loss
 plt.figure()
 plt.plot(autoencoder_train.history['loss'])
@@ -270,7 +269,6 @@ print('PSNR of reconstructed noisy images: {psnr}dB'.format(psnr=np.round(psnr_n
 The history object is returned from calls to the fit() function used to train the model. 
 Metrics are stored in a dictionary in the history member of the object returned.
 """
-
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
 test_file = "01A-D_MaLTT_Ther72h_F4-80_MaLTT_Ther72h_F4-80_01A-D - 2015-07-04 10.38.21_patch_list0.npy"
 test_file_name = img_addrs + test_file        
@@ -287,15 +285,15 @@ for i in range(0,3):
 
 #temp = np.zeros([test_shp[0],test_shp[1]+4,test_shp[2]+4,test_shp[3]])
 #temp[:,2:test_shp[1]+2,2:test_shp[2]+2,:] = test_images
-temp = np.zeros([shp[0],shp[1]-4,shp[2]-4,shp[3]]) 
-temp[:,:,:,:] = images[:,2:shp[1]-2,2:shp[2]-2,:] 
+temp = np.zeros([test_shp[0],test_shp[1]-4,test_shp[2]-4,test_shp[3]]) 
+temp[:,:,:,:] = test_images[:,2:test_shp[1]-2,2:test_shp[1]-2,:] 
 test_images = temp
 
 pred_noisy = autoencoder.predict(test_images)
-
 test_pred = autoencoder.predict(test_images)
 mse =  np.mean((test_images - test_pred) ** 2)
 psnr_test = 20 * math.log10( 1.0 / math.sqrt(mse))
+
 print('PSNR of reconstructed test images: {psnr}dB'.format(psnr=np.round(psnr_test,2)))
 
 #################################################
@@ -303,7 +301,6 @@ print('PSNR of reconstructed test images: {psnr}dB'.format(psnr=np.round(psnr_te
 The history object is returned from calls to the fit() function used to train the model. 
 Metrics are stored in a dictionary in the history member of the object returned.
 """
-
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
 test_file = "31A-D_MaLTT_Ctrl24h_Casp3_2016-06-07_patch_list0.npy"
 test_file_name = img_addrs + test_file        
@@ -320,12 +317,11 @@ for i in range(0,3):
 
 #temp = np.zeros([test_shp[0],test_shp[1]+4,test_shp[2]+4,test_shp[3]])
 #temp[:,2:test_shp[1]+2,2:test_shp[2]+2,:] = test_images
-temp = np.zeros([shp[0],shp[1]-4,shp[2]-4,shp[3]]) 
-temp[:,:,:,:] = images[:,2:shp[1]-2,2:shp[2]-2,:] 
+temp = np.zeros([test_shp[0],test_shp[1]-4,test_shp[2]-4,test_shp[3]]) 
+temp[:,:,:,:] = test_images[:,2:test_shp[1]-2,2:test_shp[1]-2,:] 
 test_images = temp
 
 pred_noisy = autoencoder.predict(test_images)
-
 test_pred = autoencoder.predict(test_images)
 mse =  np.mean((test_images - test_pred) ** 2)
 psnr_test = 20 * math.log10( 1.0 / math.sqrt(mse))
@@ -336,4 +332,51 @@ print('PSNR of reconstructed test images: {psnr}dB'.format(psnr=np.round(psnr_te
 #autoencoder = autoencoder.save_weights('autoencoder_mri.h5')
 #autoencoder = Model(input_img, autoencoder(input_img))
 #autoencoder.load_weights('autoencoder_mri.h5')
+
+#numpy.savetxt("encoded1.csv", autoencoder.predict(x), delimiter=",")
+
+#class Autoencoder(nn.Module):
+#    def __init__(self, ):
+#        super(Autoencoder, self).__init__()
+#        self.fc1 = nn.Linear(100, 50)
+#        self.fc2 = nn.Linear(50, 20)
+#        self.fc3 = nn.Linear(20, 5)
+#        self.fc4 = nn.Linear(5, 1)
+#        self.fc5 = nn.Linear(1, 5)
+#        self.fc6 = nn.Linear(5, 20)
+#        self.fc7 = nn.Linear(20, 50)
+#        self.fc8 = nn.Linear(50, 100)
+#        self.relu = nn.ReLU()
+#
+#    def forward(self, x):
+#        x1 = self.relu(self.fc1(x))
+#        x2 = self.relu(self.fc2(x1))
+#        x3 = self.relu(self.fc3(x2))
+#        x4 = self.relu(self.fc4(x3))
+#        x5 = self.relu(self.fc5(x4))
+#        x6 = self.relu(self.fc6(x5))
+#        x7 = self.relu(self.fc7(x6))
+#        x8 = self.relu(self.fc8(x7))
+#        return x1, x2, x3, x4, x5, x6, x7, x8
+#
+#model = Autoencoder()
+#x = torch.randn(1, 100)
+#outputs = model(x)
+#for i, output in enumerate(outputs):
+#    np.savetxt(
+#        'output{}.csv'.format(i),
+#        output.detach().numpy(),
+#        delimiter=',')
+#weights = model.fc1.weight
+#bias = model.fc1.bias
+
+#from keras import backend as K
+#from theano import function
+#
+#f = K.function([autoencoder.layers[0].input, K.learning_phase()], [autoencoder.layers[6].output])
+#
+#layer_output = (f([datas, 1])[0]).flatten()
+#
+#print (layer_output.shape)
+
 plt.show()

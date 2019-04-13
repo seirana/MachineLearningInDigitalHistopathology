@@ -3,7 +3,7 @@ import openslide
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import random
+#import random
 from skimage.filters import threshold_isodata
 from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
 import math 
@@ -431,7 +431,7 @@ for file in sorted(os.listdir(img_addrs)):
         ##overlap size for the patches(horisental and vertical)
         #inpt = raw_input("Please insert the horisental_overlaping percentage:(between 0 and 99) ")
         #inpt = str(random.randint(0, 99))
-        inpt = str(0)
+        inpt = str(93.75)
         sm = 0
         for ch in inpt:
             sm = sm + ord(ch)
@@ -460,8 +460,8 @@ for file in sorted(os.listdir(img_addrs)):
         info_gathering.append(hor_ovlap)
         
         #inpt = raw_input("Please insert the vertical_overlaping percentage:(between 0 and 99) ")
-        inpt = str(random.randint(0,99))
-        inpt = str(0)
+        #inpt = str(random.randint(0,99))
+        inpt = str(93.75)
         sm = 0
         for ch in inpt:
             sm = sm + ord(ch)
@@ -490,8 +490,7 @@ for file in sorted(os.listdir(img_addrs)):
         info_gathering.append(ver_ovlap)
     
         ##trace objects of the image based on the patches        
-        per_ = 80 / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles
-        patch_list = list()
+        per_ = 95 / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles
         ls = 0
         sz_list = 0
         patch_list = list()
@@ -540,14 +539,19 @@ for file in sorted(os.listdir(img_addrs)):
                     if summation <= per_ * (patch_size ** 2):
                         break
                     else:
-                        if len(patch_list) > ((5*(10**8))/(patch_size**2)): #images are RGBA(4D) #the size of the matrix should be less than 4GB
+                        if len(patch_list) > ((2**31)/((patch_size**2)*3)):#len(patch_list) > ((5*(10**8))/(patch_size**2)): #images are RGBA(4D) #the size of the matrix should be less than 4GB
                             file_Name = result_addrs + file_name + "_patch_list" + str(ls)
                             np.save(file_Name, np.asarray(patch_list,dtype= object))
+                            print(np.shape(patch_list))
                             ls += 1
                             sz_list += len(patch_list)
                             patch_list = list()
+                            alpha_remov = tmp[:,:,0:3] #remove alpha channel
+                            patch_list.append(alpha_remov)
                         
-                        patch_list.append(tmp)
+                        
+                        alpha_remov = tmp[:,:,0:3]
+                        patch_list.append(alpha_remov) #remove alpha chnnel
                         patch_info.append([n, objct_list[n][0]*resize_+(patch_size - ver_ovlap)*i, objct_list[n][2]*resize_+(patch_size - hor_ovlap)*j])
                         
         ##save the patch list and info to the files
@@ -560,6 +564,7 @@ for file in sorted(os.listdir(img_addrs)):
         information.append(np.asarray(info_gathering,dtype= object))
         del(info_gathering)
         del(tmp)
+        print(np.shape(patch_list))
         del(patch_list)
         del(patch_info)
         del(resized_matrix)

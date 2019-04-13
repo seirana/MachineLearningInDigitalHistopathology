@@ -1,21 +1,17 @@
 from keras.preprocessing.image import ImageDataGenerator
 from __future__ import print_function
-from keras.datasets import cifar10
-from keras.preprocessing.image import ImageDataGenerator
-from keras.utils import np_utils
-from keras.callbacks import ReduceLROnPlateau, CSVLogger, EarlyStopping
-from keras.layers import Conv2D, MaxPooling2D
-from keras.layers import Activation, Dropout, Flatten, Dense
 
 import numpy as np
-import resnet
 import os
-import cv2
-import csv
 
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
-batch_size = 128
+file = "01A-D_MaLTT_Ther72h_Casp3_MaLTT_Ther72h_Casp3_01A-D - 2015-07-04 10.27.12_patch_list0.npy"
+file_name = img_addrs + file        
+patch_list = np.load(file_name)
+images = patch_list[:,:,:,0:3] #remove the alpha channel
 shp = np.shape(images)
+
+batch_size = 128
 
 # this is the augmentation configuration we will use for training
 train_datagen = ImageDataGenerator(\
@@ -23,7 +19,7 @@ train_datagen = ImageDataGenerator(\
         shear_range=0,\
         zoom_range=0,\
         horizontal_flip=False,\
-        width_shift_range=0.1, height_shift_range=0.1) # randomly shift images horizontally/vertically (fraction of total width/height)               
+        vertical_flip=False)           
 
 # generator for reading train data from folder
 """
@@ -36,7 +32,6 @@ train_generator = train_datagen.flow_from_directory(\
         rescale=1./255,\
         shear_range=0.2,\
         zoom_range=0.2,\
-        horizontal_flip=True,\
         target_size=(shp[1], shp[2]),\
         color_mode="rgb",\
         batch_size=batch_size,\
