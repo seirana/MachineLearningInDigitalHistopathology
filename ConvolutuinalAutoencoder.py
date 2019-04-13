@@ -15,7 +15,7 @@ from patch_features import image_info
 
 addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
 img_lst = np.load(addrs + "image_info.npy")
-img_size, patch_size, ver_ovlap, hor_ovlap, per = image_info()
+resolution, patch_size, ver_ovlap, hor_ovlap, per = image_info()
 inChannel = 3
 x, y = patch_size, patch_size
 input_img = Input(shape = (x, y, inChannel))
@@ -167,8 +167,8 @@ process the data
 autoencoder.summary()
 autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
-rand_list = make_rand_list(len(img_lst), train_per)   
-autoencoder_train = autoencoder.fit_generator(train_patches_for_batches(addrs, patch_size, batch_sz), \
+rand_list = make_rand_list(len(img_lst), train_per)
+autoencoder_train = autoencoder.fit_generator(train_patches_for_batches(addrs, patch_size, batch_sz, resolution), \
                                         steps_per_epoch=steps_per_epoch_, \
                                         epochs=epochs_, verbose=1, callbacks=None, \
                                         validation_data=valid_patches_for_batches(addrs, patch_size, batch_sz), \

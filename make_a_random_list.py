@@ -11,9 +11,6 @@ import numpy as np
 from random import randint
 
 def make_rand_list(addrs, array_length, train_per):
-    array_length = 13
-    train_per = 0.8
-    
     train_test = np.zeros(shape=(array_length))
     c = 0
     while c < train_per*array_length: #train_per = the percentage of openslise slides we will use for train, e.g 80%
@@ -21,8 +18,8 @@ def make_rand_list(addrs, array_length, train_per):
         if train_test[r] == 0:
             train_test[r] = 1
             c+=1
-            
-    np.save(addrs+"train_test_list", train_test)       
+    dictOftrain_tests = {i+1:train_test[i] for i in range(0,len(train_test))}       
+    np.save(addrs+"train_test_list", dictOftrain_tests)       
     return 
 
 ##checked works well      

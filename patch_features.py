@@ -22,7 +22,7 @@ def image_info():
         for ch in inpt:
             sm = sm + ord(ch)   
    
-    img_size = inpt
+    resolution = inpt
     
     ##define a patch size
     inpt = input("Please insert the desired patch size:(between 25 and 1000)")
@@ -118,4 +118,4 @@ def image_info():
       
     per = inpt / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles    
    
-    return img_size, patch_size, ver_ovlap, hor_ovlap, per
+    return resolution, patch_size, ver_ovlap, hor_ovlap, per
