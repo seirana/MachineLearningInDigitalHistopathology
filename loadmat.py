@@ -3,7 +3,6 @@ import openslide
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import pickle
 import random
 from PIL import Image
 from skimage.filters import threshold_isodata
@@ -24,12 +23,15 @@ img_info.append(["FileName", "levelCount", "levelDimension", "objct_num", "objct
 
 for file in sorted(os.listdir(img_addrs)):
     if file.endswith(".ndpi"):       
-    
+        info_gathering = list()
         file_name = file.replace('.ndpi','')
+        info_gathering.append(file_name)
         print file_name
         slide = openslide.OpenSlide(img_addrs + file)
-        levelCount = slide.level_count    
+        levelCount = slide.level_count 
+        info_gathering.append(levelCount)
         levelDimension = slide.level_dimensions          
+        info_gathering.append(levelDimension)
         
         ##read the image in desired level, convert it to gray scale and save it as a .jpeg file 
         for i in range(0,levelCount):
@@ -40,6 +42,7 @@ for file in sorted(os.listdir(img_addrs)):
         img_th = levelCount-i-1
         img = slide.get_thumbnail(levelDimension[img_th])        
         image = np.array(img)
+        info_gathering.append(image)
         del(img)
         gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         cv2.imwrite(result_addrs + file_name + '_(1)gray_scale.jpg', gray_scale)
@@ -275,6 +278,8 @@ for file in sorted(os.listdir(img_addrs)):
 
                                 
         objct_num = objct_num+1
+        info_gathering.append(objct_num+1)  
+        info_gathering.append(objct_list)
         list_size = len(objct_list)
         if list_size < 1:
             print "The search was not successfull to find any object for this file: ", file            
@@ -309,7 +314,7 @@ for file in sorted(os.listdir(img_addrs)):
 
         #inpt = raw_input("Please choose the desired manginifasion layer: ") 
         #inpt = str(random.randint(0, img_th-1))
-        inpt = str(0)
+        inpt = str(0)        
         sm = 0
         for ch in inpt:
             sm = sm + ord(ch)
@@ -327,6 +332,7 @@ for file in sorted(os.listdir(img_addrs)):
                 sm = sm + ord(ch)      
   
         resize_ = levelDimension[int(inpt)][0]/levelDimension[img_th][0]
+        info_gathering.append(resize_)
         
         if type(resize_) != int:
             print "resize_ is not integer!"
@@ -376,7 +382,7 @@ for file in sorted(os.listdir(img_addrs)):
                 sm = sm + ord(ch) 
                 
         patch_size = int(inpt)        
-        
+        info_gathering.append(patch_size)
           
         ##overlap size for the patches(horisental and vertical)
         #inpt = raw_input("Please insert the horisental_overlaping percentage:(between 0 and 99) ")
@@ -407,6 +413,8 @@ for file in sorted(os.listdir(img_addrs)):
         if hor_ovlap == patch_size:
             hor_ovlap = hor_ovlap-1  
         
+        info_gathering.append(hor_ovlap)
+        
         #inpt = raw_input("Please insert the vertical_overlaping percentage:(between 0 and 99) ")
         inpt = str(random.randint(0,99))
         inpt = str(0)
@@ -435,7 +443,8 @@ for file in sorted(os.listdir(img_addrs)):
         if ver_ovlap == patch_size:
             ver_ovlap = ver_ovlap-1
 
-        
+        info_gathering.append(ver_ovlap)
+    
         ##trace objects of the image based on the patches        
         per_ = 80 / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles
         patch_list = list()
@@ -470,24 +479,26 @@ for file in sorted(os.listdir(img_addrs)):
                     for i in range(1,x_-1):
                         tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*i), 0, (width_, new_heigth_))
                         t_mat= np.array(tmp_img)
-                        max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)  
+                        max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)
            
                 tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*(x_-1)), 0, (width_, heigth_-new_heigth_*(x_-1)))
                 t_mat= np.array(tmp_img)
-                max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)  
+                max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)
                         
             for i in range(0,int((heigth_ - ver_ovlap) / (patch_size - ver_ovlap))):
-                for j in range(0,int((width_ - hor_ovlap) / (patch_size - hor_ovlap))): 
+                for j in range(0,int((width_ - hor_ovlap) / (patch_size - hor_ovlap))):
                     tmp = max_mag_lev_obj[(patch_size - ver_ovlap)*i:(patch_size - ver_ovlap)*i+patch_size,(patch_size - hor_ovlap)*j:(patch_size - hor_ovlap)*j+patch_size]
                     
-                    #check this line  ##check the coverage condition for the patch, to make all patches in the min. possible time 
+                    #check this line  ##check the coverage condition for the patch, to make all patches in the min. possible time
                     summation = np.sum(resized_matrix[(patch_size - ver_ovlap)*i:(patch_size - ver_ovlap)*i+patch_size,(patch_size - hor_ovlap)*j:(patch_size - hor_ovlap)*j+patch_size])
                     if summation <= per_ * (patch_size ** 2):
-                        break  
+                        break
                     else:
                         patch_list.append(tmp)
-                        patch_info.append([n, i ,j])         
-
+                        patch_info.append([np.asanyarray(info_gathering), n, objct_list[n][0]*resize_+(patch_size - ver_ovlap)*i ,objct_list[n][2]*resize_+(patch_size - hor_ovlap)*j])         
+                        #
+                        print (patch+info)
+                        
         ##save the patch list to a file
         file_Name = result_addrs + file_name + "_patch_list"
         np.save(file_Name, patch_list)                  
@@ -497,11 +508,10 @@ for file in sorted(os.listdir(img_addrs)):
         del(patch_list)  
         del(patch_info)
         del(resized_matrix)
-        del(max_mag_lev_obj)
-        img_info.append([file_name, levelCount, levelDimension, img_th, objct_num, objct_list, resize_, patch_size, ver_ovlap, hor_ovlap])
+        del(max_mag_lev_obj)        
+        img_info.append(np.asanyarray(info_gathering))
         plt.close('all')
         
-                
 ##save the information for the the images in a file
 file_Name = result_addrs + "Images_INFO"
 np.save(file_Name, img_info)

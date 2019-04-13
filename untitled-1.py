@@ -1,121 +1,111 @@
-from skimage import img_as_float
-from skimage.util import invert
-from resizeimage import resizeimage
+##comparing otsu global and local threshod on the minimum-level gray-scale image        
+global_thresh = threshold_otsu(gray)
+binary_global = gray > global_thresh
 
+block_size = 35
+local_thresh = threshold_local(gray, block_size, offset=10)
+binary_local = gray > local_thresh
 
-im = cv2.imread('/home/seirana/Documents/CMU-1.ndpi.jpg')
-imgray = cv2.cvtColor(gray,cv2.COLOR_BGR2GRAY)
-ret,thresh = cv2.threshold(imgray,127,255,0)
-contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-
-print contours
-np.save('/home/seirana/Documents/myfile', contours)
-
-ra = np.load('/home/seirana/Documents/myfile.npy')
-print ra
-
-print len(contours)
-
-cv2.drawContours(gray, contours, -1, (0,255,0), 3)
-plt.show()
-
-
-mat = [[255 for x in range(0,levelDimension[levelCount-1][0])] for y in range(0,levelDimension[levelCount-1][1])]
-
-rot_edges = np.rot90(gray_scale)
-
-
-
-sz = np.shape(gray_scale)  
-if sz[0] > sz[1]: 
-    gray_scale = np.rot90(gray_scale)
-    
-    
-
-# we open the file for reading
-fileObject = open(file_Name,'r')  
-# load the object from the file into var b
-b = pickle.load(fileObject)     
-
-
-
-fileObject = open(result_addrs + "07A-D_MaLTT_Ctrl24h_Casp3_MaLTT_Ctrl42h_Casp3_07A-D - 2015-07-05 10.20.02.ndpi_patch_list",'r')  
-# load the object from the file into var b
-b = pickle.load(fileObject)
-print b
-
-
-#plt.figure()
-#plt.hist(np.ndarray.flatten(gray_scale))
-
-##remove small objects
-rem_sm_obj = remove_small_objects(gray_scale,  0.01 * levelDimension[img_th][0] * 0.01 * levelDimension[img_th][1], connectivity=2)
-
-for i in range(0, levelDimension[img_th][1]):
-    for j in range(0, levelDimension[img_th][0]):
-        if rem_sm_obj[i][j] == False:
-            gray_scale[i][j] = 0
-        else:
-            gray_scale[i][j] = 255
-
-gray_scale = np.copy(rem_sm_obj)
-
-
-##save the image after removing the small objects 
-cv2.imwrite(result_addrs + file + '_(7)rem_sm_obj.jpg', gray_scale)   
-
-
-#apply all thesolds in the minimum-level gray-scale image                   
-fig, ax = try_all_threshold(gray_scale, figsize=(10, 8), verbose=False)
-
-#save  the results of all thesolds in the minimum-level gray-scale image as a .jpg file
-fig.savefig(result_addrs + file + '_(2)try_all_threshold.jpg')
-
-
-binary = gray_scale> thresh  
-
-fig, axes = plt.subplots(ncols=2, figsize=(8, 3))
+fig, axes = plt.subplots(nrows=3, figsize=(7, 8))
 ax = axes.ravel()
+plt.gray()
 
-ax[0].imshow(gray_scale, cmap=plt.cm.gray)
-ax[0].set_title('Original image')
+ax[0].imshow(gray)
+ax[0].set_title('Original')
 
-ax[1].imshow(binary, cmap=plt.cm.gray)
-ax[1].set_title('Result')
+ax[1].imshow(binary_global)
+ax[1].set_title('Global thresholding')
+
+ax[2].imshow(binary_local)
+ax[2].set_title('Local thresholding')
 
 for a in ax:
-    a.axis('off') 
+    a.axis('off')
     
-                
-##save the results of isodata threshold on the minimum-level gray-scale image
-plt.savefig(result_addrs + file + '_(3)isodata.jpg')     
+plt.savefig('/home/seirana/Documents/Results/threshold_otsu_Local&Global.jpg')  
 
-##do canny edge detection on the minimum-level gray-scale isodata edited image
-edges = cv2.Canny(gray_scale,1,254)
-plt.subplot(121),plt.imshow(gray_scale,cmap = 'gray')
-plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-plt.subplot(122),plt.imshow(edges,cmap = 'gray')
-plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
-       
 
-##save the image afted applying canny edge detection on the minimum-level gray-scale isodata edited image
-gray_scale = np.copy(edges)
-cv2.imwrite(result_addrs + file + '_(3)edges.jpg', gray_scale) 
 
-for cnt in contours:
-    approx = cv2.approxPolyDP(cnt,0.01*cv2.arcLength(cnt,True),True)
-    print len(approx)
-    if len(approx)==4:
-        print "square"
-        cv2.drawContours(img,[cnt],0,(0,0,255),-1)
-        
-        
-        img_info.append([file_name, "d", levelCount, "d", levelDimension, "d", w1, "d", w2, "d", w3, "d", w4, "d", w5, "d", w6, "d", w7, "d"])
+##save the minimum-level gray-scale otsu image           
+cv2.imwrite('/home/seirana/Documents/Results/otsu'+ file +'.jpg', gray) 
 
-##save the information for the the images in a file
-file_Name = result_addrs + "Images_INFO"
-fileObject = open(file_Name,'wb') 
-pickle.dump(img_info,fileObject)   
-fileObject.close()
-np.savetxt("/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/AAA.csv", img_info, fmt='%s')         
-        
+
+
+##black_tophat on minimum-level gray-scale otsu image
+selem = disk(1)
+b_tophat = black_tophat(opened, selem)
+plot_comparison(opened, b_tophat, 'black tophat') 
+
+
+##erosion on minimum-level gray-scale otsu image
+selem = disk(1) 
+eroded = erosion(opened, selem)
+plot_comparison(opened, eroded, 'erosion')        
+
+##dilation on minimum-level gray-scale otsu image
+selem = disk(1) 
+dilated = dilation(eroded, selem)
+plot_comparison(eroded, dilated, 'dilation') 
+
+##using mean treshold to make a minimum-level gray-scale mean image
+arr = np.shape(gray_mean)  
+for i in range(0,arr[0]):
+    for j in range(0,arr[1]):
+        if gray_mean[i,j] >= thresh:
+            gray_mean[i,j] = 255
+        else: 
+            gray_mean[i,j] = 0
+            
+##print the threshold
+print "mean threshod:", thresh                       
+    
+##save the results of mean threshold on the minimum-level gray-scale image
+plt.savefig('/home/seirana/Documents/Results/threshold_mean.jpg') 
+
+image=mpimg.imread('/home/seirana/Documents/coins.jpg')
+imgplot = plt.imshow(image)
+plt.show() 
+
+image = img.convert("L")
+arr = np.asarray(image)
+plt.imshow(arr, cmap='gray')
+plt.show()
+
+img = cv2.imread('/home/seirana/Documents/two.jpg')       
+
+color = ('b','g','r')
+for i,col in enumerate(color):
+    histr = cv2.calcHist([image],[i],None,[256],[0,256])
+    plt.plot(histr,color = col)
+    plt.xlim([0,256])
+plt.show() 
+
+imgA = img.reshape(-1)
+img = imgA   
+
+ret,thresh = cv2.threshold(edited,127,255,0)
+contours,hierarchy = cv2.findContours(thresh, 1, 2)
+
+cnt = contours[0]
+M = cv2.moments(cnt)
+print type(M)
+print M
+print "contours:", len(contours)
+area = cv2.contourArea(cnt)
+print area
+epsilon = 0.01*cv2.arcLength(cnt,True)
+approx = cv2.approxPolyDP(cnt,epsilon,True) 
+print type(approx)
+print np.shape(approx)
+#plt.show()
+#cv2.imwrite('/home/seirana/Documents/Results/approx.jpg', cnt)
+
+###normalizing data
+#from sklearn import preprocessing
+#normalized_X = preprocessing.normalize(X)
+
+##cover.save('/home/seirana/Documents/Results/levelDimensionZerro.jpg', gray.format)
+
+##load the counturs from a.npy file and print it
+ra = np.load('/home/seirana/Documents/Results/counturs.npy')
+
