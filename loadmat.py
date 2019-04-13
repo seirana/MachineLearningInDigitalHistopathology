@@ -19,7 +19,8 @@ img_info.append(["FileName", "levelCount", "levelDmension", "objct_num", "objct_
 
 for file in sorted(os.listdir(ndpi_addrs)):
     if file.endswith(".ndpi"): 
-        file = "03A-C_MaLTT_Ther72h_CD3_MaLTT_Ther72h_CD3_03A-C - 2015-07-04 21.02.18.ndpi"
+
+        #file = "03A-C_MaLTT_Ther72h_CD3_MaLTT_Ther72h_CD3_03A-C - 2015-07-04 21.02.18.ndpi"
         file_name = file.replace('.ndpi','')
         
         ##open the .ndpi file and find the level_count  and level dimmensions      
@@ -41,37 +42,61 @@ for file in sorted(os.listdir(ndpi_addrs)):
         image = np.array(img)       
         gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  
         cv2.imwrite(result_addrs + file_name + '_(1)gray_scale.jpg', gray_scale)
-                 
+        org_gray_scale = np.copy(gray_scale)          
         
         
-        ##find and apply isodata threshold on the image  
-        thresh = threshold_isodata(gray_scale)
-        arr = np.shape(gray_scale)  
-        for i in range(0,arr[0]):
-            for j in range(0,arr[1]):
-                if gray_scale[i][j] >= thresh:
-                    gray_scale[i][j] = 255
-                else: 
-                    gray_scale[i][j] = 0
-       
-       
+        ##find and apply isodata threshold on the image 
+        correct_thresh = False        
+        while correct_thresh == False:
+            gray_scale = np.copy(org_gray_scale)             
+            iso_thresh = threshold_isodata(gray_scale)            
+            arr = np.shape(gray_scale) 
+            
+            for i in range(0,arr[0]):
+                for j in range(0,arr[1]):
+                    if gray_scale[i][j] >= iso_thresh:
+                        gray_scale[i][j] = 255
+                    else: 
+                        gray_scale[i][j] = 0 
+            
+            ##apply binary morphological filters on the image(opening, dilation, closing) and save it
+            selem = disk(6) 
+            opened = opening(gray_scale, selem)
+            dilated = dilation(opened, selem)
+            closed = closing(dilated, selem)
         
-        ##apply binary morphological filters on the image(opening, dilation, closing) and save it
-        selem = disk(6) 
-        opened = opening(gray_scale, selem)
-        dilated = dilation(opened, selem)
-        closed = closing(dilated, selem)
-                      
-        gray_scale = np.copy(closed)
-        cv2.imwrite(result_addrs + file_name + '_(2)edited_isodata.jpg', gray_scale) 
-               
+            edges = cv2.Canny(closed,50,150,apertureSize = 3)
+            lines = cv2.HoughLines(edges,1,np.pi/180, 200)
+            line_num = np.shape(lines)
+                       
+            #try:
+                #lines
+            #except NameError:
+                #var_exists = False
+            #else:
+                #var_exists = True  
                 
+            if len(line_num) > 0:    
+                for i in range(0,levelDimension[img_th][1]):
+                    for j in range(0,levelDimension[img_th][0]):
+                        if org_gray_scale[i][j] >= iso_thresh:
+                            org_gray_scale[i][j]  = iso_thresh-1              
+                            
+            else:
+                correct_thresh = True
+                
+                      
+        gray_scale = np.copy(closed) 
+        cv2.imwrite(result_addrs + file_name + '_(2)edited_isodata.jpg', gray_scale) 
+              
+                      
 
         ##find boundries of the objects in the image ans save it
         mat = np.copy(gray_scale)
         for i in range(0,levelDimension[img_th][1]):
             for j in range(0,levelDimension[img_th][0]):
                 if gray_scale[i][j] == 0:
+
                     mat[i][j] = 255  
                 else:
                     mat[i][j] = 0
@@ -93,7 +118,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
         cv2.imwrite(result_addrs + file_name + '_(3)boundries.jpg', gray_scale)
         
         
-        
+                        
         ##calculate the number of contours on the image and omit the small ones and save it  
         ret,thresh = cv2.threshold(gray_scale,127,255,0)
         contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)                        
@@ -133,11 +158,11 @@ for file in sorted(os.listdir(ndpi_addrs)):
                 if len(contours[i]) < 0.001:
                     for m in range(mini,maxi+1):
                         for n in range(minj, maxj+1):                    
-                            gray_scale[n][m] = 0                    
-                              
+                            gray_scale[n][m] = 0   
+                  
         cv2.imwrite(result_addrs + file_name + '_(4)omited_small_contours.jpg', gray_scale)
-         
-                      
+           
+           
                 
         ##trace the image to find the object zones (sweep the columns)
         sz = np.shape(gray_scale)
@@ -249,7 +274,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
             #print file            
             continue
          
-              
+        
         
         ##drow a convex hall around each object and save it
         for k in range(0,objct_num):            
@@ -267,11 +292,13 @@ for file in sorted(os.listdir(ndpi_addrs)):
                     if chull[i][j] == False:
                         gray_scale[i][j] = 0
                     else:
-                        gray_scale[i][j] = 255    
+                        gray_scale[i][j] = 255                            
                         
         cv2.imwrite(result_addrs + file_name + '_(5)convex_hull.jpg', gray_scale) 
              
-        
+        #for i in range (0, levelDimension[img_th][1]):
+            #for j in range (0, levelDimension[img_th][0]):
+                
         
         print file_name, np.shape(gray_scale),objct_num
         
