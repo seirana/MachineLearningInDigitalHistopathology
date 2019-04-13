@@ -116,6 +116,6 @@ def image_info():
         for ch in inpt:
             sm = sm + ord(ch)
       
-    per = inpt / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles
-    
+    per = inpt / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles    
+   
     return img_size, patch_size, ver_ovlap, hor_ovlap, per
