@@ -1,14 +1,4 @@
-import os
-import openslide
-import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-import pickle
-import random
-from PIL import Image
-from skimage.filters import threshold_isodata
-from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
-
 
 resize_ = 5
 objct_list = [10, 41, 50, 71]

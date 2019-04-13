@@ -2,23 +2,19 @@
 import os
 import numpy as np
 from PIL import Image
-from resizeimage import resizeimage
-import math
 
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
 
 for file in sorted(os.listdir(img_addrs)):
     if file.endswith("_patch_list.npy"):    
         file_name = img_addrs + file        
-        file_name = "01A-D_MaLTT_Ther72h_Casp3_MaLTT_Ther72h_Casp3_01A-D - 2015-07-04 10.27.12_patch_list.npy"
         patch_list = np.load(img_addrs+file_name)
         #file_name = file.replace('list','info')        
-        file_name = "01A-D_MaLTT_Ther72h_Casp3_MaLTT_Ther72h_Casp3_01A-D - 2015-07-04 10.27.12_patch_info.npy"
         patch_info = np.load(img_addrs+file_name)
-        print np.shape(patch_info)
-        print patch_info[0]
+        print (np.shape(patch_info))
+        print (patch_info[0])
         strt = 0
-        print patch_info[0][0][4]
+        print (patch_info[0][0][4])
         for i in range(0,patch_info[0][0][4]):
             resize = patch_info[i][0][6]
             obj_width = (patch_info[0][0][5][i][1]-patch_info[0][0][5][i][0])*resize

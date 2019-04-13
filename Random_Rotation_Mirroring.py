@@ -1,6 +1,8 @@
 ##This module receive a patch_ and returns a onother matrix by randomly mirroring ro rotationg the patch_ matrix 
 ##Simply rotation 0, 90, 180 or 270 degree or rotation plus mirroring
-import math
+import numpy as np
+import random
+
 
 def random_rot_mirr(patch_):
 

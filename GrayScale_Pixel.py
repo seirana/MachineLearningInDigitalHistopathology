@@ -5,7 +5,6 @@ import openslide
 import cv2
 import numpy as np
 from skimage.filters import threshold_isodata
-from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
 
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
 result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"
@@ -16,7 +15,7 @@ for file in sorted(os.listdir(img_addrs)):
     if file.endswith(".ndpi"):       
     
         file_name = file.replace('.ndpi','')
-        print file_name
+        print (file_name)
         slide = openslide.OpenSlide(img_addrs + file)
         levelCount = slide.level_count    
         levelDimension = slide.level_dimensions
