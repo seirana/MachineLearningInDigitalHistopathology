@@ -22,4 +22,4 @@ def make_rand_list(addrs, array_length, train_per):
     np.save(addrs+"train_test_list", dictOftrain_tests)       
     return 
 
-##checked works well      
+##checked works well
