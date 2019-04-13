@@ -18,10 +18,13 @@ from keras import Sequential
 from keras.layers import Input,Conv2D,MaxPooling2D,UpSampling2D
 from keras.layers.normalization import BatchNormalization
 from keras.optimizers import  RMSprop
+from preprocessing.image import ImageDataGenerator
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 import numpy as np
 import math
+from patch_batch_generator import patches_for_batches
+
 
 ##Loading the data
 """
@@ -88,7 +91,7 @@ plt.savefig(img_addrs + 'tensorflow_images_(01_02)Train_Validation.jpg')
 
 ##The Convolutional Autoencoder!
 batch_size_ = 256
-epochs_ = 300
+epochs_ = 2
 inChannel = 3
 x, y = shp[1], shp[2]
 input_img = Input(shape = (x, y, inChannel))
@@ -174,32 +177,46 @@ autoencoder.add(Conv2D(3, (3,3), activation='sigmoid', padding='same', name="las
 ##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
 autoencoder.summary()
 
-#autoencoder = Model(inputs=input_img, outputs=last_layer(input_img))
+#last_layer = autoencoder.layers[-1]
 autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
 ##train the model with Keras' fit() function
 autoencoder_train = autoencoder.fit(train_X, train_ground, batch_size=batch_size_,epochs=epochs_,verbose=1,validation_data=(valid_X, valid_ground))
 
-#last_layer = autoencoder.layers[-1]
-#model.fit_generator(generator(dataFrameTrain,expectedFrameTrain,batch_size), epochs=3,steps_per_epoch = dataFrame.shape[0]/batch_size, validation_data=generator(dataFrameTest,expectedFrameTest,batch_size*2),validation_steps=dataFrame.shape[0]/batch_size*2)
-#evaluate_generator(self, generator, val_samples, max_q_size=10, nb_worker=1, pickle_safe=False)
-#predict_generator(self, generator, val_samples, max_q_size=10, nb_worker=1, pickle_safe=False)
+'''inprogress'''
+result_addrs = ""
+information = ""
+patch_num = ""
 
+input_data = patches_for_batches(patch_num, information, result_addrs)
 
-##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
-#for layer in autoencoder.layers:
-#    if layer.name == "code":
-#        print(layer)        
-#        print(layer.name)
-#        weights = layer.get_weights()
-#        print (weights)        
-#        g=layer.get_config()
-#        print(g)
-#
-#from keras import backend as K
-#get_layer = K.function([autoencoder.layers[0].input, K.learning_phase()],autoencoder.layers['code'].output)
-#print(get_layer)
+datagen = ImageDataGenerator(\
+    featurewise_center=False,\
+    featurewise_std_normalization=False,\
+    rotation_range=0,\
+    width_shift_range=0,\
+    height_shift_range=0,\
+    horizontal_flip=False)
 
+batch_sz = ""
+x_train = ""
+epochs_ = ""
+
+autoencoder.fit_generator(datagen.flow(x = input_data, y=None, batch_size= batch_sz,\
+                    shuffle=True, sample_weight=None, seed=None, save_to_dir=None)\
+                    ,steps_per_epoch=len(x_train) / batch_sz, epochs=epochs_)
+
+'''inprogress'''
+
+#the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
+for layer in autoencoder.layers:
+    if layer.name == "code" or layer.name == "conv2d_10":
+        print(layer)
+        print(layer.name)
+        weights = layer.get_weights()
+        print (len(weights[0]))
+        g=layer.get_config()
+        print(g)
 
 ##plot the loss plot between training 
 # summarize history for loss
@@ -324,8 +341,6 @@ for i in range(0,3):
     mi = np.min(test_images[:,:,:,i])
     test_images[:,:,:,i] = (test_images[:,:,:,i] - mi) / (m - mi)
 
-#temp = np.zeros([test_shp[0],test_shp[1]+4,test_shp[2]+4,test_shp[3]])
-#temp[:,2:test_shp[1]+2,2:test_shp[2]+2,:] = test_images
 temp = np.zeros([test_shp[0],test_shp[1]-4,test_shp[2]-4,test_shp[3]]) 
 temp[:,:,:,:] = test_images[:,2:test_shp[1]-2,2:test_shp[1]-2,:] 
 test_images = temp
