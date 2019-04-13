@@ -31,7 +31,7 @@ def Preprocessing(img_addrs, result_addrs, file, information):
             image = np.array(img)
             info_gathering.append(img_th)
             
-            gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)                
+            gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             cv2.imwrite(result_addrs + file_name + '_(1)gray_scale.jpg', gray_scale)
             org_gray_scale = np.copy(gray_scale)
             arr = np.shape(gray_scale)
