@@ -1,13 +1,233 @@
-import matplotlib.pyplot as plt 
+"""
+To read nifti format images, reconstructing them using convolutional autoencoder
+To observe the effectiveness of the model, we will be testing the model on:
+Unseen images,Noisy images and Use a qualitative metric:
+Peak signal to noise ratio (PSNR) to evaluate the performance of the reconstructed images.
+
+First, In the implementation of convolutional autoencoder: we will Fit the preprocessed data into the model,
+visualize the training and validation loss plot, save the trained model and finally predict on the test
+set.
+
+Next, we'll will test the robustness of the pre-trained model by adding noise into the test images and
+see how well the model performs quantitatively.
+
+Finally, you will test the predictions using a quantitative metric peak signal-to-noise ratio (PSNR) and
+measure the performance of the model.
+"""
+
+## Importing the modules
+import os
+import cv2
+from keras.layers import Input,Dense,Flatten,Dropout,merge,Reshape,Conv2D,MaxPooling2D,UpSampling2D,Conv2DTranspose
+from keras.layers.normalization import BatchNormalization
+from keras.models import Model,Sequential
+from keras.callbacks import ModelCheckpoint
+from keras.optimizers import Adadelta, RMSprop,SGD,Adam
+from keras import regularizers
+from keras import backend as K
 import numpy as np
+import scipy.misc
+import numpy.random as rng
+from PIL import Image, ImageDraw, ImageFont
+from sklearn.utils import shuffle
+import nibabel as nib #reading MR images
+from sklearn.model_selection import train_test_split
+import math
 import glob
-import os, sys
-fpath ="path_Of_my_final_Big_File"
-npyfilespath ="path_of_my_numpy_files"   
-os.chdir(npyfilespath)
-npfiles= glob.glob("*.npy")
-npfiles.sort()
-all_arrays = []
-for i, npfile in enumerate(npfiles):
-    all_arrays.append(np.load(os.path.join(npyfilespath, npfile)))
-np.save(fpath, np.concatenate(all_arrays))
+from matplotlib import pyplot as plt
+##%matplotlib inline
+
+##Loading the data
+"""
+You will use glob module which will return a list comprising of all the volumes
+in the folder that you specify!
+"""
+ff = glob.glob('ground3T/*')
+
+"""
+You will be using only the middle 51 slices of the brain and not all the 207 slices. 
+So, let's also see how to use only the center slices and load them.
+"""
+images = []
+for f in range(len(ff)):
+    a = nib.load(ff[f]) ## The normal way to ask for the array data is to call the get_data() method.
+    a = a.get_data()
+    a = a[:,78:129,:]
+    for i in range(a.shape[1]):
+        images.append((a[:,i,:]))
+
+##Data Preprocessing
+images = np.asarray(images) #Since images is a list you will use numpy module to convert the list in to a numpy array.
+images = images.reshape(-1, 173,173,1)
+
+"""
+rescale the data with using max-min normalisation technique
+"""
+m = np.max(images) 
+mi = np.min(images)
+images = (images - mi) / (m - mi)
+temp = np.zeros([1530,176,176,1])
+temp[:,3:,3:,:] = images
+images = temp
+
+"""
+In order for your model to generalize well, you split the data into two parts: a training and a 
+validation set. You will train your model on 80% of the data and validate it on 20% of the remaining 
+training data.
+"""
+##from sklearn.model_selection import train_test_split
+train_X,valid_X,train_ground,valid_ground = train_test_split(images,images,test_size=0.2,random_state=13)
+
+##Data Exploration
+##Shapes of training set
+print("Dataset (images) shape: {shape}".format(shape=images.shape))
+
+##take a look at couple of the training and validation images in the dataset
+plt.figure(figsize=[5,5])
+
+##Display the first image in training data
+plt.subplot(121)
+curr_img = np.reshape(train_X[0], (176,176))
+plt.imshow(curr_img, cmap='gray')
+
+##Display the first image in testing data
+plt.subplot(122)
+curr_img = np.reshape(valid_X[0], (176,176))
+plt.imshow(curr_img, cmap='gray')
+
+##The Convolutional Autoencoder!
+batch_size = 128
+epochs = 300
+inChannel = 1
+x, y = 176, 176
+input_img = Input(shape = (x, y, inChannel))
+
+"""
+Encoder: It has 3 Convolution blocks, each block has a convolution layer 
+followed a batch normalization layer. 
+Max-pooling layer is used after the first and second convolution blocks.
+"""
+##encoder
+##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
+def autoencoder(input_img):
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img) #28 x 28 x 32
+    conv1 = BatchNormalization()(conv1)
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+    conv1 = BatchNormalization()(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
+    
+    ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
+    conv2 = BatchNormalization()(conv2)
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    conv2 = BatchNormalization()(conv2)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
+    
+    ##The final block of encoder will have 128 filters of size 3 x 3
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
+    conv3 = BatchNormalization()(conv3)
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
+    conv3 = BatchNormalization()(conv3)
+    
+    #decoder
+    """
+    Decoder: It has 2 Convolution blocks, each block has a convolution layer 
+    followed a batch normalization layer. 
+    Upsampling layer is used after the first and second convolution blocks.
+    """
+    ##The first block will have 128 filters of size 3 x 3 followed by a upsampling layer
+    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
+    conv4 = BatchNormalization()(conv4)
+    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
+    conv4 = BatchNormalization()(conv4)
+    up1 = UpSampling2D((2,2))(conv4) # 14 x 14 x 128
+    
+    ##The second block will have 64 filters of size 3 x 3 followed by another upsampling layer
+    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
+    conv5 = BatchNormalization()(conv5)
+    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
+    conv5 = BatchNormalization()(conv5)
+    up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
+    
+    ##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
+    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(up2) # 28 x 28 x 1
+    return decoded
+
+autoencoder = Model(input_img, autoencoder(input_img))
+autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
+
+##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
+autoencoder.summary()
+
+##train the model with Keras' fit() function
+autoencoder_train = autoencoder.fit(train_X, train_ground, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(valid_X, valid_ground))
+
+##plot the loss plot between training and validation data to visualise the model performance
+loss = autoencoder_train.history['loss']
+val_loss = autoencoder_train.history['val_loss']
+epochs = range(300)
+plt.figure()
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+plt.show()
+
+##Save the Model
+##You can anytime load the saved weights in the same model and train it from where your training stopped. 
+autoencoder = autoencoder.save_weights('autoencoder_mri.h5')
+autoencoder = Model(input_img, autoencoder(input_img))
+autoencoder.load_weights('autoencoder_mri.h5')
+
+##Predicting on Validation Data
+##Since here you do not have a testing data. Let's use the validation data for predicting on the model that you trained just now
+pred = autoencoder.predict(valid_X)
+plt.figure(figsize=(20, 4))
+print("Test Images")
+for i in range(5):
+    plt.subplot(1, 5, i+1)
+    plt.imshow(valid_ground[i, ..., 0], cmap='gray')
+plt.show()    
+plt.figure(figsize=(20, 4))
+print("Reconstruction of Test Images")
+for i in range(5):
+    plt.subplot(1, 5, i+1)
+    plt.imshow(pred[i, ..., 0], cmap='gray')  
+plt.show()
+
+##Predicting on Noisy 3T images
+##First let's add some noise into the validation images with a mean zero and standard deviation of 0.03.
+[a,b,c,d]= np.shape(valid_X)
+mean = 0
+sigma = 0.03
+gauss = np.random.normal(mean,sigma,(a,b,c,d))
+noisy_images = valid_X + gauss
+
+pred_noisy = autoencoder.predict(noisy_images)
+plt.figure(figsize=(20, 4))
+print("Noisy Test Images")
+for i in range(5):
+    plt.subplot(1, 5, i+1)
+    plt.imshow(noisy_images[i, ..., 0], cmap='gray')
+plt.show()    
+plt.figure(figsize=(20, 4))
+print("Reconstruction of Noisy Test Images")
+for i in range(5):
+    plt.subplot(1, 5, i+1)
+    plt.imshow(pred_noisy[i, ..., 0], cmap='gray')  
+plt.show()
+
+##Quantitative Metric: Peak Signal-to-Noise Ratio (PSNR)
+"""
+The PSNR block computes the peak signal-to-noise ratio, in decibels(dB), between two images. 
+This ratio is often used as a quality measurement between the original and a reconstructed image. 
+The higher the PSNR, the better the quality of the reconstructed image.
+"""
+valid_pred = autoencoder.predict(valid_X)
+mse =  np.mean((valid_X - valid_pred) ** 2)
+psnr = 20 * math.log10( 1.0 / math.sqrt(mse))
+print('PSNR of reconstructed validation images: {psnr}dB'.format(psnr=np.round(psnr,2)))
+
+noisy_pred = autoencoder.predict(noisy_images)
+mse =  np.mean((valid_X - noisy_pred) ** 2)
+psnr_noisy = 20 * math.log10( 1.0 / math.sqrt(mse))

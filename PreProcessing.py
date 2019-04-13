@@ -4,12 +4,9 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-from PIL import Image
 from skimage.filters import threshold_isodata
 from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
-import matplotlib.patches as patches
 import math 
-import Image_Properties as IMG ##mine
 
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
 result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"
@@ -24,7 +21,7 @@ for file in sorted(os.listdir(img_addrs)):
         info_gathering = list()
         file_name = file.replace('.ndpi','') 
         info_gathering.append(file_name)
-        print file_name
+        print (file_name)
         
         slide = openslide.OpenSlide(img_addrs + file)
         levelCount = slide.level_count 
@@ -64,7 +61,7 @@ for file in sorted(os.listdir(img_addrs)):
                 bg_pixel = i
                 break
             
-        print bg_pixel
+        print (bg_pixel)
         for i in range(0,arr[0]):
             for j in range(0,arr[1]):
                 if gray_scale[i][j] > 230:
@@ -107,7 +104,7 @@ for file in sorted(os.listdir(img_addrs)):
                         gray_scale[i][j] = 255
                     else: 
                         gray_scale[i][j] = 0 
-            print iso_thresh
+            print (iso_thresh)
             cv2.imwrite(result_addrs + file_name + '_(12)gray_scale.jpg', gray_scale)
             
             ##apply binary morphological filters on the image(opening, dilation, closing) and save it
@@ -177,7 +174,8 @@ for file in sorted(os.listdir(img_addrs)):
                         
         ##calculate the number of contours on the image and omit the small ones and save it  
         ret,thresh = cv2.threshold(gray_scale,127,255,0)
-        contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)                        
+        _ , contours, _ = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE) 
+        
 
         for i in range(0,len(contours)):
             mini = max(levelDimension[img_th][0], levelDimension[img_th][1])
@@ -328,7 +326,7 @@ for file in sorted(os.listdir(img_addrs)):
         info_gathering.append(objct_list)
         list_size = len(objct_list)
         if list_size < 1:
-            print "The search was not successfull to find any object for this file: ", file            
+            print ("The search was not successfull to find any object for this file: ", file)            
             continue
                
                        
@@ -380,8 +378,8 @@ for file in sorted(os.listdir(img_addrs)):
         resize_ = levelDimension[int(inpt)][0]/levelDimension[img_th][0]
         info_gathering.append(resize_)
         
-        if type(resize_) != int:
-            print "resize_ is not integer!"
+        if math.floor(resize_) < resize_:
+            print ("resize_ is not integer!")
             continue   
                 
         max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
@@ -404,7 +402,7 @@ for file in sorted(os.listdir(img_addrs)):
         if max_pos_patch_sz > 100:
             inpt = str(100)
         else:
-            print "patch size is: ", max_pos_patch_sz
+            print ("patch size is: ", max_pos_patch_sz)
             continue
         
         sm = 0
@@ -507,10 +505,10 @@ for file in sorted(os.listdir(img_addrs)):
             del(tmp_mat)
 
             ##read the object in the max. magnification level
-            heigth_ = (objct_list[n][1]- objct_list[n][0]+1)*resize_ 
-            width_ = (objct_list[n][3]- objct_list[n][2]+1)*resize_ 
-            leftup_i  = objct_list[n][0]*resize_
-            leftup_j  = objct_list[n][2]*resize_
+            heigth_ = int((objct_list[n][1]- objct_list[n][0]+1)*resize_) 
+            width_ = int((objct_list[n][3]- objct_list[n][2]+1)*resize_) 
+            leftup_i  = int(objct_list[n][0]*resize_)
+            leftup_j  = int(objct_list[n][2]*resize_)
             
             if heigth_  * width_  < 2**28:
                 tmp_img = slide.read_region((leftup_j, leftup_i), 0, (width_, heigth_))
