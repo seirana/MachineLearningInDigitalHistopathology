@@ -2,24 +2,28 @@
 import os
 os.system('clear')
 
-from keras import Sequential#, Model
+from keras import Sequential
 from keras.layers import Input,Conv2D,MaxPooling2D,UpSampling2D
 from keras.layers.normalization import BatchNormalization
 from keras.optimizers import  RMSprop
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.models import load_model
 from matplotlib import pyplot as plt
 import numpy as np
-from make_a_random_list import make_rand_list
-from tpatch_batch_generator import train_patches_for_batches
-from vpatch_batch_generator import valid_patches_for_batches
-from patch_features import image_info
+from train_test_random_list import make_rand_list
+from fit_generator import patch_generator
+from tissues_slides_list_percentage import tissues_slides_list
+from keras import backend as K
+K.tensorflow_backend._get_available_gpus()
 
-addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
-img_lst = np.load(addrs + "image_info.npy")
-img_size, patch_size, ver_ovlap, hor_ovlap, per = image_info()
-inChannel = 3
+addrs = "/home/seirana/Desktop/Workstation/casp3/"
+result_addrs = "/home/seirana/Desktop/Workstation/casp3/code/"
+img_lst = np.load(addrs + "_SlidesInfo_dic.npy")[()]
+patch_size = 256
+inChannel = 3 #RGB images
 x, y = patch_size, patch_size
 input_img = Input(shape = (x, y, inChannel))
-
+print(input_img)
 ##Data Preprocessing
 """
 Encoder: It has 5 Convolution blocks, each block has a convolution layer 
@@ -27,76 +31,77 @@ followed a batch normalization layer.
 Max-pooling layer is used after the first and second convolution blocks.
 """
 ##encoder
-##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
 autoencoder = Sequential()
-autoencoder.add(Conv2D(32, (3, 3), activation='relu', padding='valid', input_shape=(x, y, inChannel)))
+
+##The first convolution block
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same', input_shape=(x, y, inChannel))) 
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(MaxPooling2D(pool_size=(2,2))) 
+
+##The second convolution block
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same')) 
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
     
-##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='valid'))
+##The third block
+autoencoder.add(Conv2D(128,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64, ((3,3)), activation='relu', padding='valid'))
+autoencoder.add(Conv2D(128,(3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
+
+##The forth block
+autoencoder.add(Conv2D(256,(3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(256,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
        
-##The third block will have 128 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(128, (3,3), activation='relu', padding='valid'))
+##The last block
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same')) 
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='valid'))
-autoencoder.add(BatchNormalization())
-autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
-        
-##The forth block of encoder will have 32 filters of size 3 x 3
-autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='valid'))
-autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='valid'))
-autoencoder.add(BatchNormalization())
-autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
-
-##The final block of encoder will have 32 filters of size 3 x 3
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
-autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid', name = 'code'))
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same', name='code'))
 
 #decoder
 """
-    Decoder: It has 4 Convolution blocks, each block has a convolution layer 
+    Decoder: It has 2 Convolution blocks, each block has a convolution layer 
     followed a batch normalization layer. 
     Upsampling layer is used after the first and second convolution blocks.
 """
-##The first block will have 32 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='valid'))
+##The first block
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='valid'))
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
 
-##The second block will have 16 filters of size 3 x 3 followed by a upsampling layer    
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='valid'))
+##The second block
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='valid'))
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(UpSampling2D((2,2)))
+
+##The third block   
+autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
     
-##The second block will have 8 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='valid'))
+##The forthd block 
+autoencoder.add(Conv2D(8,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='valid'))
-autoencoder.add(BatchNormalization())
-autoencoder.add(UpSampling2D((2,2)))
-    
-##The third block will have 4 filters of size 3 x 3 followed by another upsampling layer
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
-autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
+autoencoder.add(Conv2D(8,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
-   
+
 ##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
-autoencoder.add(Conv2D(3, (3,3), activation='sigmoid', padding='valid'))
+autoencoder.add(Conv2D(3,(3,3), activation='sigmoid', padding='same'))
 
 '''begin'''
 '''
@@ -151,14 +156,13 @@ use_multiprocessing: Boolean. If True, use process-based threading.
 '''
 call functions to generate train and validation data for each bach
 '''
-epochs_ = 100 #number of epochs, we will have
-batch_sz = 100 #the batch siz,we we will take
+epochs_ = 10#number of epochs, we will have
+batch_sz = 100 #the batch siz,we we will take = TrainingBatchSize + ValidationBatchSize
 train_per = 0.8 #the percentage of data, which will be used for training
 validation_per = 1-train_per
-all_patchs_per_image = 200000 #number of patches we want to extract of each image
-steps_per_epoch_ = all_patchs_per_image * int(train_per * len(img_lst) / batch_sz) #TotalTrainingSamples / TrainingBatchSize
-
-validation_steps_ = all_patchs_per_image * int(validation_per * len(img_lst) / batch_sz) #TotalvalidationSamples / ValidationBatchSize
+all_patchs = 1000 #number of all patches we want to extract
+steps_per_epoch_ = int(all_patchs/batch_sz) #TotalTrainingSamples / TrainingBatchSize
+validation_steps_ = int(all_patchs/batch_sz) #TotalvalidationSamples / ValidationBatchSize
 
 '''
 process the data
@@ -167,27 +171,41 @@ process the data
 autoencoder.summary()
 autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
-rand_list = make_rand_list(len(img_lst), train_per)   
-autoencoder_train = autoencoder.fit_generator(train_patches_for_batches(addrs, patch_size, batch_sz), \
-                                        steps_per_epoch=steps_per_epoch_, \
-                                        epochs=epochs_, verbose=1, callbacks=None, \
-                                        validation_data=valid_patches_for_batches(addrs, patch_size, batch_sz), \
-                                        validation_steps=validation_steps_, class_weight=None, max_queue_size=10, workers=1, \
-                                        use_multiprocessing=True, shuffle=True, initial_epoch=0)
+resolution = 0
+#make_rand_list(addrs, len(img_lst), train_per)
+#tissues_slides_list()
+#earlystop = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=50, verbose=0, mode='min', baseline=None, restore_best_weights=True)
+#modelcheckpoint = ModelCheckpoint(result_addrs+'best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
+autoencoder_train = autoencoder.fit_generator(patch_generator(addrs, patch_size, batch_sz, resolution, 'train'),\
+                                              steps_per_epoch=steps_per_epoch_,\
+                                              epochs=epochs_,\
+                                              verbose=1,\
+#                                              callbacks=[earlystop, modelcheckpoint],\
+                                              callbacks = None,\
+                                              validation_data=patch_generator(addrs, patch_size, batch_sz, resolution, 'test'),\
+                                              validation_steps=validation_steps_,\
+                                              class_weight=None,\
+                                              max_queue_size=10,\
+                                              workers=1,\
+                                              use_multiprocessing=True,\
+                                              shuffle=False,\
+                                              initial_epoch=0)
 '''end'''
 
-result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
-
+#load the saved model
+saved_model = load_model(result_addrs+'best_model.h5')
+# evaluate the model
 ##the summary function, this will show the number of parameters (weights and biases) in each layer and also the total parameters in the model
-for layer in autoencoder.layers:
+
+for layer in saved_model.layers:
     if layer.name == "code":
         print(layer.name)
         weights = layer.get_weights()
-        np.save(result_addrs+"_code", weights)
+        np.save(result_addrs+"_code_weights", weights)
         output = layer.get_output()
-        np.save(result_addrs+"_code", output)
+        np.save(result_addrs+"_code_output", output)
         config=layer.get_config()
-        np.save(result_addrs+"_code", config)
+        np.save(result_addrs+"_code-config", config)
 
 ##plot the loss plot between training, summarize history for loss 
 plt.figure()
