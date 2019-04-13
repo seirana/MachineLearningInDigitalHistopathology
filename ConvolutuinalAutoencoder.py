@@ -133,7 +133,7 @@ validation_data: This can be either
 validation_steps: Only relevant if validation_data is a generator. 
     Total number of steps (batches of samples) to yield from validation_data generator 
     before stopping at the end of every epoch. It should typically be equal to the 
-    number of samples of your validation dataset divided by the batch size. 
+    number of samples of your validation dataset divided by the batch size.
     optional for Sequence: if unspecified, will use the len(validation_data) as a number of steps. 
     
 max_queue_size: Integer. Maximum size for the generator queue. 
@@ -152,24 +152,25 @@ use_multiprocessing: Boolean. If True, use process-based threading.
 call functions to generate train and validation data for each bach
 '''
 epochs_ = 100 #number of epochs, we will have
-train_batch_sz = 100 #the batch siz,we we will take
-valid_batch_sz  = 100
+batch_sz = 100 #the batch siz,we we will take
 train_per = 0.8 #the percentage of data, which will be used for training
-steps_per_epoch_ = int(train_per * len(img_lst) / train_batch_sz) #TotalTrainingSamples / TrainingBatchSize
-validation_steps_ = int((1-train_per) * len(img_lst) / valid_batch_sz) #TotalvalidationSamples / ValidationBatchSize
+validation_per = 1-train_per
+all_patchs_per_image = 200000 #number of patches we want to extract of each image
+steps_per_epoch_ = all_patchs_per_image * int(train_per * len(img_lst) / batch_sz) #TotalTrainingSamples / TrainingBatchSize
+validation_steps_ = all_patchs_per_image * int(validation_per * len(img_lst) / batch_sz) #TotalvalidationSamples / ValidationBatchSize
 
-rand_list = make_rand_list(len(img_lst), train_per)
-train_set = train_patches_for_batches(addrs, img_lst, img_size, patch_size, rand_list, 1) #target for the autoencoder is the same image, then inputs = targets
-validation_set = valid_patches_for_batches(addrs, img_lst, img_size, patch_size, rand_list, 0) #target for the autoencoder is the same image, then inputs = targets
 '''
 process the data
 '''
 ##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
 autoencoder.summary()
-autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop()) 
-   
-autoencoder_train = autoencoder.fit_generator((train_set, train_set), steps_per_epoch=steps_per_epoch_, \
-                                        epochs=epochs_, verbose=1, callbacks=None, validation_data=(validation_set,validation_set), \
+autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
+
+rand_list = make_rand_list(len(img_lst), train_per)   
+autoencoder_train = autoencoder.fit_generator(train_patches_for_batches(addrs, img_lst, img_size, patch_size, rand_list, batch_sz, inChannel, all_patchs_per_image, train_per), \
+                                        steps_per_epoch=steps_per_epoch_, \
+                                        epochs=epochs_, verbose=1, callbacks=None, \
+                                        validation_data=valid_patches_for_batches(addrs, img_lst, img_size, patch_size, rand_list, batch_sz, inChannel, all_patchs_per_image, validation_per), \
                                         validation_steps=validation_steps_, class_weight=None, max_queue_size=10, workers=1, \
                                         use_multiprocessing=True, shuffle=True, initial_epoch=0)
 '''end'''

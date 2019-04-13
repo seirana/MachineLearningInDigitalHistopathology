@@ -71,7 +71,7 @@ def Preprocessing(img_addrs, result_addrs, file, information):
         while correct_thresh == False:
             iso_thresh = threshold_isodata(gray_scale)
            
-           #make a coly of gray scale with two colors, 0 & 255
+            #make a coly of gray scale with two colors, 0 & 255
             check_rec = np.copy(gray_scale) 
             for i in range(0,arr[0]):
                 for j in range(0,arr[1]):
@@ -350,7 +350,8 @@ def Preprocessing(img_addrs, result_addrs, file, information):
                                 
         objct_num = objct_num+1
         info_gathering.append(objct_num)
-        info_gathering.append(objct_list)
+        new_lst = np.dot(objct_list,2^img_th)
+        info_gathering.append(new_lst)
         list_size = len(objct_list)
         if list_size < 1:
             print ("The search was not successfull to find any object for this file: ", file_name)
@@ -368,7 +369,6 @@ def Preprocessing(img_addrs, result_addrs, file, information):
     def covex_hall(info_gathering, gray_scale, img_th, objct_list, objct_num, list_size):
         for k in range(0,objct_num):
             mat = np.zeros(shape=(levelDimension[img_th][1],levelDimension[img_th][0]))
-            
             for i in range(objct_list[k][0], objct_list[k][1]+1):
                 for j in range(objct_list[k][2], objct_list[k][3]+1):
                     mat[i][j] = gray_scale[i][j]
@@ -383,7 +383,9 @@ def Preprocessing(img_addrs, result_addrs, file, information):
                         gray_scale[i][j] = 255
                         
         cv2.imwrite(result_addrs + file_name + '_(6)convex_hull.jpg', gray_scale)
-        np.save(result_addrs + file_name + "_convex_hull", gray_scale)
+        resize_ = 2^img_th 
+        resized_matrix = np.repeat(np.repeat(gray_scale, resize_, axis=0), resize_, axis=1)
+        np.save(result_addrs + file_name + "_convex_hull", resized_matrix)
         plt.close('all')
         return
     
