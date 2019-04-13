@@ -18,4 +18,4 @@ for file in sorted(os.listdir(img_addrs)):
     else:
         continue
     
-np.save(result_addrs + "image_info", np.asarray(information,dtype= object))
+np.save(result_addrs + "slides", np.asarray(information,dtype= object))

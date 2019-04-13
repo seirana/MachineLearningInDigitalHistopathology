@@ -29,37 +29,37 @@ Max-pooling layer is used after the first and second convolution blocks.
 ##encoder
 ##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
 autoencoder = Sequential()
-autoencoder.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=(x, y, inChannel)))
+autoencoder.add(Conv2D(32, (3, 3), activation='relu', padding='valid', input_shape=(x, y, inChannel)))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
     
 ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, ((3,3)), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
        
 ##The third block will have 128 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
         
 ##The forth block of encoder will have 32 filters of size 3 x 3
-autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
 
 ##The final block of encoder will have 32 filters of size 3 x 3
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same', name = 'code'))
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid', name = 'code'))
 
 #decoder
 """
@@ -68,35 +68,35 @@ autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same', name = 'cod
     Upsampling layer is used after the first and second convolution blocks.
 """
 ##The first block will have 32 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
 
 ##The second block will have 16 filters of size 3 x 3 followed by a upsampling layer    
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
     
 ##The second block will have 8 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
     
 ##The third block will have 4 filters of size 3 x 3 followed by another upsampling layer
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='valid'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
    
 ##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
-autoencoder.add(Conv2D(3, (3,3), activation='sigmoid', padding='same'))
+autoencoder.add(Conv2D(3, (3,3), activation='sigmoid', padding='valid'))
 
 '''begin'''
 '''
@@ -157,6 +157,7 @@ train_per = 0.8 #the percentage of data, which will be used for training
 validation_per = 1-train_per
 all_patchs_per_image = 200000 #number of patches we want to extract of each image
 steps_per_epoch_ = all_patchs_per_image * int(train_per * len(img_lst) / batch_sz) #TotalTrainingSamples / TrainingBatchSize
+
 validation_steps_ = all_patchs_per_image * int(validation_per * len(img_lst) / batch_sz) #TotalvalidationSamples / ValidationBatchSize
 
 '''
@@ -167,10 +168,10 @@ autoencoder.summary()
 autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
 rand_list = make_rand_list(len(img_lst), train_per)   
-autoencoder_train = autoencoder.fit_generator(train_patches_for_batches(addrs, img_lst, img_size, patch_size, rand_list, batch_sz, inChannel, all_patchs_per_image, train_per), \
+autoencoder_train = autoencoder.fit_generator(train_patches_for_batches(addrs, patch_size, batch_sz), \
                                         steps_per_epoch=steps_per_epoch_, \
                                         epochs=epochs_, verbose=1, callbacks=None, \
-                                        validation_data=valid_patches_for_batches(addrs, img_lst, img_size, patch_size, rand_list, batch_sz, inChannel, all_patchs_per_image, validation_per), \
+                                        validation_data=valid_patches_for_batches(addrs, patch_size, batch_sz), \
                                         validation_steps=validation_steps_, class_weight=None, max_queue_size=10, workers=1, \
                                         use_multiprocessing=True, shuffle=True, initial_epoch=0)
 '''end'''
