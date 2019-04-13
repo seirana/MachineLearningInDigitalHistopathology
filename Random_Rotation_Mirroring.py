@@ -1,4 +1,4 @@
-##This module receive a patch_ and returns a onother matrix by randomly mirroring ro rotationg the patch_ matrix 
+##This module receive a patch_ and returns onother matrix by randomly mirroring/rotationg the patch_ matrix 
 ##Simply rotation 0, 90, 180 or 270 degree or rotation plus mirroring
 import numpy as np
 import random

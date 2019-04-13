@@ -113,25 +113,31 @@ autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
     
 ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
        
 ##The third block will have 128 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same')) 
+autoencoder.add(Conv2D(128, (3,3), activation='relu', padding='same')) 
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
         
- ##The final block of encoder will have 32 filters of size 3 x 3
+##The final block of encoder will have 32 filters of size 3 x 3
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same')) 
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())    
+autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
+
+##The new filter
 autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same')) 
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
-autoencoder.add(BatchNormalization())    
-autoencoder.add(MaxPooling2D(pool_size=(2, 2), name="code")) 
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same', name="code"))
+autoencoder.add(BatchNormalization())
 
 #decoder
 """
@@ -166,6 +172,9 @@ autoencoder.add(BatchNormalization())
 autoencoder.add(Conv2D(4, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
+
+##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
+autoencoder.summary()
     
 ##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
 autoencoder.add(Conv2D(3, (3,3), activation='sigmoid', padding='same', name="lastLayer"))
@@ -175,6 +184,7 @@ autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
 ##train the model with Keras' fit() function
 autoencoder_train = autoencoder.fit(train_X, train_ground, batch_size=batch_size_,epochs=epochs_,verbose=1,validation_data=(valid_X, valid_ground))
+
 
 #model.fit_generator(generator(dataFrameTrain,expectedFrameTrain,batch_size), epochs=3,steps_per_epoch = dataFrame.shape[0]/batch_size, validation_data=generator(dataFrameTest,expectedFrameTest,batch_size*2),validation_steps=dataFrame.shape[0]/batch_size*2)
 #evaluate_generator(self, generator, val_samples, max_q_size=10, nb_worker=1, pickle_safe=False)
