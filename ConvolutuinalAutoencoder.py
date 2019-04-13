@@ -38,23 +38,28 @@ file_name = img_addrs + file
 patch_list = np.load(file_name)
 
 """
-You will be using only the middle 51 slices of the brain and not all the 207 slices. 
+You will be using only RGB channel anit amit the . 
 So, let's also see how to use only the center slices and load them.
 """
 
-images = patch_list[:,:,:,0] #images = patch_list[:,:,:,0:3] #remove the alpha channel
+images = patch_list[:,:,:,0:3] #remove the alpha channel
 shp = np.shape(images)
-images = images.reshape(-1, shp[1],shp[2],1)
+images = images.reshape(-1, shp[1],shp[2],shp[3])
 
 ##Data Preprocessing
 
 """
 rescale the data with using max-min normalisation technique
 """
-m = np.max(images) 
-mi = np.min(images)
-images = (images - mi) / (m - mi)
-
+for i in range(0,3):
+    m = np.max(images[:,:,:,i]) 
+    mi = np.min(images[:,:,:,i])
+    images[:,:,:,i] = (images[:,:,:,i] - mi) / (m - mi)
+    
+temp = np.zeros([shp[0],shp[1]+4,shp[2]+4,shp[3]])
+temp[:,2:shp[1]+2,2:shp[2]+2,:] = images
+images = temp
+shp = np.shape(images)
 
 """
 In order for the model to generalize well, we split the data into two parts: a training and a 
@@ -73,13 +78,13 @@ plt.figure(figsize=[5,5])
 
 ##Display the first image in training data
 plt.subplot(121)
-curr_img = np.reshape(train_X[0], (shp[1],shp[2]))
+curr_img = np.reshape(train_X[0], (shp[1],shp[2],shp[3]))
 curr_img = curr_img.tolist()
 plt.imshow(curr_img, cmap = 'gray')
 
 ##Display the first image in testing data
 plt.subplot(122)
-curr_img = np.reshape(valid_X[0], (shp[1],shp[2]))
+curr_img = np.reshape(valid_X[0], (shp[1],shp[2],shp[3]))
 curr_img = curr_img.tolist()
 plt.imshow(curr_img, cmap = 'gray')
 
@@ -88,7 +93,7 @@ plt.savefig(img_addrs + 'tensorflow_images_(01_02)Train_Validation.jpg')
 ##The Convolutional Autoencoder!
 batch_size = 128
 epochs = 2#300
-inChannel = 1
+inChannel = 3
 x, y = shp[1], shp[2]
 input_img = Input(shape = (x, y, inChannel))
 
@@ -100,25 +105,32 @@ Max-pooling layer is used after the first and second convolution blocks.
 ##encoder
 ##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
 def autoencoder(input_img):
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img) #28 x 28 x 32
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img) 
     conv1 = BatchNormalization()(conv1)
     conv1 = Conv2D(32, (3,3), activation='relu', padding='same')(conv1)
     conv1 = BatchNormalization()(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) 
     
     ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-    conv2 = Conv2D(64, (3,3), activation='relu', padding='same')(pool1) #14 x 14 x 64
+    conv2 = Conv2D(64, (3,3), activation='relu', padding='same')(pool1) 
     conv2 = BatchNormalization()(conv2)
     conv2 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv2)
     conv2 = BatchNormalization()(conv2)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
-    
-    ##The final block of encoder will have 128 filters of size 3 x 3
-    conv3 = Conv2D(128, ((3,3)), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) 
+       
+    ##The third block will have 64 filters of size 3 x 3, followed by another downsampling layer
+    conv3 = Conv2D(128, (3,3), activation='relu', padding='same')(pool2) 
     conv3 = BatchNormalization()(conv3)
     conv3 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv3)
     conv3 = BatchNormalization()(conv3)
-    
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3) 
+        
+    ##The final block of encoder will have 128 filters of size 3 x 3
+    conv4 = Conv2D(256, ((3,3)), activation='relu', padding='same')(pool3) 
+    conv4 = BatchNormalization()(conv4)
+    conv4 = Conv2D(256, ((3,3)), activation='relu', padding='same')(conv4)
+    conv4 = BatchNormalization()(conv4)    
+   
     #decoder
     """
     Decoder: It has 2 Convolution blocks, each block has a convolution layer 
@@ -126,21 +138,28 @@ def autoencoder(input_img):
     Upsampling layer is used after the first and second convolution blocks.
     """
     ##The first block will have 128 filters of size 3 x 3 followed by a upsampling layer
-    conv4 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv3) #7 x 7 x 128
-    conv4 = BatchNormalization()(conv4)
-    conv4 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv4)
-    conv4 = BatchNormalization()(conv4)
-    up1 = UpSampling2D((2,2))(conv4) # 14 x 14 x 128
+    conv5 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv4) #7 x 7 x 128
+    conv5 = BatchNormalization()(conv5)
+    conv5 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv5)
+    conv5 = BatchNormalization()(conv5)
+    up1 = UpSampling2D((2,2))(conv5) # 14 x 14 x 128
     
-    ##The second block will have 64 filters of size 3 x 3 followed by another upsampling layer
-    conv5 = Conv2D(32, ((3,3)), activation='relu', padding='same')(up1) # 14 x 14 x 64
-    conv5 = BatchNormalization()(conv5)
-    conv5 = Conv2D(32, ((3,3)), activation='relu', padding='same')(conv5)
-    conv5 = BatchNormalization()(conv5)
-    up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
+    ##The second block will have 128 filters of size 3 x 3 followed by a upsampling layer
+    conv6 = Conv2D(64, ((3,3)), activation='relu', padding='same')(up1) #7 x 7 x 128
+    conv6 = BatchNormalization()(conv6)
+    conv6 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv6)
+    conv6 = BatchNormalization()(conv6)
+    up2 = UpSampling2D((2,2))(conv6) # 14 x 14 x 128
+    
+    ##The third block will have 64 filters of size 3 x 3 followed by another upsampling layer
+    conv7 = Conv2D(32, ((3,3)), activation='relu', padding='same')(up2) # 14 x 14 x 64
+    conv7 = BatchNormalization()(conv7)
+    conv7 = Conv2D(32, ((3,3)), activation='relu', padding='same')(conv7)
+    conv7 = BatchNormalization()(conv7)
+    up3 = UpSampling2D((2,2))(conv7) # 28 x 28 x 64
     
     ##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
-    decoded = Conv2D(1, ((3,3)), activation='sigmoid', padding='same')(up2) # 28 x 28 x 1
+    decoded = Conv2D(3, ((3,3)), activation='sigmoid', padding='same')(up3) # 28 x 28 x 1
     return decoded
 
 autoencoder = Model(input_img, autoencoder(input_img))
@@ -163,7 +182,6 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-#plt.show()
 plt.savefig(img_addrs + 'tensorflow_images_(03)Accuracy.jpg')
 
 # summarize history for loss
@@ -174,7 +192,6 @@ plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-#plt.show()
 plt.savefig(img_addrs + 'tensorflow_images_(04)LossFunction.jpg')
 
 ##Predicting on Validation Data
@@ -184,7 +201,7 @@ plt.figure(figsize=(20, 4))
 print("Test Images")
 for i in range(5):
     plt.subplot(1, 5, i+1)
-    curr_img = np.reshape(valid_ground[i], (shp[1],shp[2]))
+    curr_img = np.reshape(valid_ground[i], (shp[1],shp[2],shp[3]))
     curr_img = curr_img.tolist()
     plt.imshow(curr_img, cmap='gray')
     plt.savefig(img_addrs + 'tensorflow_images_(05)Prediction.jpg')  
@@ -193,7 +210,7 @@ plt.figure(figsize=(20, 4))
 print("Reconstruction of Test Images")
 for i in range(5):
     plt.subplot(1, 5, i+1)
-    curr_img = np.reshape(pred[i], (shp[1],shp[2]))
+    curr_img = np.reshape(pred[i], (shp[1],shp[2],shp[3]))
     curr_img = curr_img.tolist()
     plt.imshow(curr_img, cmap='gray') 
     plt.savefig(img_addrs + 'tensorflow_images_(06)Reconstruction of Test Images.jpg')
@@ -211,7 +228,7 @@ plt.figure(figsize=(20, 4))
 print("Noisy Test Images")
 for i in range(5):
     plt.subplot(1, 5, i+1)
-    curr_img = np.reshape(noisy_images[i], (shp[1],shp[2]))
+    curr_img = np.reshape(noisy_images[i], (shp[1],shp[2],shp[3]))
     curr_img = curr_img.tolist()
     plt.imshow(curr_img, cmap='gray')
     plt.savefig(img_addrs + 'tensorflow_images_(07)Noisy Images.jpg')
@@ -220,7 +237,7 @@ plt.figure(figsize=(20, 4))
 print("Reconstruction of Noisy Test Images")
 for i in range(5):
     plt.subplot(1, 5, i+1)
-    curr_img = np.reshape(pred_noisy[i], (shp[1],shp[2]))
+    curr_img = np.reshape(pred_noisy[i], (shp[1],shp[2],shp[3]))
     curr_img = curr_img.tolist()
     plt.imshow(curr_img, cmap='gray') 
     plt.savefig(img_addrs + 'tensorflow_images_(08)Reconstruction of Noisy Images.jpg')
@@ -251,13 +268,18 @@ test_file = "01A-D_MaLTT_Ther72h_F4-80_MaLTT_Ther72h_F4-80_01A-D - 2015-07-04 10
 test_file_name = img_addrs + test_file        
 test_patch_list = np.load(test_file_name)
 
-test_images = test_patch_list[:,:,:,0] 
+test_images = test_patch_list[:,:,:,0:3] 
 test_shp = np.shape(test_images)
-test_images = test_images.reshape(-1, test_shp[1],test_shp[2],1)
+test_images = test_images.reshape(-1, test_shp[1],test_shp[2],3)
 
-m = np.max(test_images) 
-mi = np.min(test_images)
-test_images = (test_images - mi) / (m - mi)
+for i in range(0,3):
+    m = np.max(test_images[:,:,:,i]) 
+    mi = np.min(test_images[:,:,:,i])
+    test_images[:,:,:,i] = (test_images[:,:,:,i] - mi) / (m - mi)
+
+temp = np.zeros([test_shp[0],test_shp[1]+4,test_shp[2]+4,test_shp[3]])
+temp[:,2:test_shp[1]+2,2:test_shp[2]+2,:] = test_images
+test_images = temp
 
 pred_noisy = autoencoder.predict(test_images)
 
@@ -277,13 +299,18 @@ test_file = "31A-D_MaLTT_Ctrl24h_Casp3_2016-06-07_patch_list0.npy"
 test_file_name = img_addrs + test_file        
 test_patch_list = np.load(test_file_name)
 
-test_images = test_patch_list[:,:,:,0] 
+test_images = test_patch_list[:,:,:,0:3] 
 test_shp = np.shape(test_images)
-test_images = test_images.reshape(-1, test_shp[1],test_shp[2],1)
+test_images = test_images.reshape(-1, test_shp[1],test_shp[2],3)
 
-m = np.max(test_images) 
-mi = np.min(test_images)
-test_images = (test_images - mi) / (m - mi)
+for i in range(0,3):
+    m = np.max(test_images[:,:,:,i]) 
+    mi = np.min(test_images[:,:,:,i])
+    test_images[:,:,:,i] = (test_images[:,:,:,i] - mi) / (m - mi)
+
+temp = np.zeros([test_shp[0],test_shp[1]+4,test_shp[2]+4,test_shp[3]])
+temp[:,2:test_shp[1]+2,2:test_shp[2]+2,:] = test_images
+test_images = temp
 
 pred_noisy = autoencoder.predict(test_images)
 
