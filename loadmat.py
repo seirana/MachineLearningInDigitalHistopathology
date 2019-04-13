@@ -8,6 +8,7 @@ import random
 from PIL import Image
 from skimage.filters import threshold_isodata
 from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
+import matplotlib.patches as patches
 
 
 
@@ -19,9 +20,6 @@ img_info.append(["FileName", "levelCount", "levelDmension", "objct_num", "objct_
 
 for file in sorted(os.listdir(ndpi_addrs)):
     if file.endswith(".ndpi"): 
-
-        #file = "09A-D_MaLTT_Ctrl242h_TK1_MaLTT_Ctrl42h_TK1_09A-D - 2015-07-05 05.07.31.ndpi"
-        #file = "07A-D_MaLTT_Ctrl24h_B220_MaLTT_Ctrl42h_B220_07A-D - 2015-07-08 17.00.07.ndpi"
         file_name = file.replace('.ndpi','')
         
         ##open the .ndpi file and find the level_count  and level dimmensions      
@@ -29,7 +27,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
         levelCount = slide.level_count       
         levelDimension = slide.level_dimensions
 
-
+        print levelCount, levelDimension
 
         ##read the image in desired level, convert it to gray scale and save it as a .jpeg file 
         for i in range(0,levelCount):
@@ -66,12 +64,8 @@ for file in sorted(os.listdir(ndpi_addrs)):
             dilated = dilation(opened, selem)
             closed = closing(dilated, selem)
         
-            #edges = cv2.Canny(closed,50,150,apertureSize = 3)
-            #lines = cv2.HoughLines(edges,1,np.pi/180, 200)
-            #line_num = np.shape(lines)   
-             
-                
-            #if len(line_num) > 0:
+        
+        
             tst = []
             for j in range(0,arr[1]):
                 tst.append(0)
@@ -283,7 +277,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
         objct_num = objct_num+1
         list_size = len(objct_list)
         if list_size < 1:
-            #print file            
+            print "The search was not successfull to find any object for this file: ", file            
             continue
 
          
@@ -310,175 +304,210 @@ for file in sorted(os.listdir(ndpi_addrs)):
         cv2.imwrite(result_addrs + file_name + '_(5)convex_hull.jpg', gray_scale)         
         print file_name, np.shape(gray_scale),objct_num
         
+           
             
         ##resize the image
-        #print "There are different magnification levels,"
-        #for i in range(0, img_th): 
-            #print "level ", i, ":", levelDimension[i]
+        print "There are different magnification levels,"
+        for i in range(0, img_th): 
+            print "level ", i, ":", levelDimension[i]
 
-        ##inpt = raw_input("Please choose the desired manginifasion layer: ") 
-        #inpt = str(random.randint(0, img_th-1))
-        #sm = 0;
-        #for ch in inpt:
-            #sm = sm + ord(ch)
+        #inpt = raw_input("Please choose the desired manginifasion layer: ") 
+        inpt = str(random.randint(0, img_th-1))
+        sm = 0;
+        for ch in inpt:
+            sm = sm + ord(ch)
             
-        #ln = 0
-        #for ch in str(img_th-1):
-            #ln = ln + ord(ch)
+        ln = 0
+        for ch in str(img_th-1):
+            ln = ln + ord(ch)
             
-        #while sm < 48 or sm > ln:        
-            ##inpt = raw_input("Please insert the desired manginifasion layer: ") 
-            #inpt = str(random.randint(0, img_th-1))
-            #sm = 0;
-            #for ch in inpt:
-                #sm = sm + ord(ch)      
+        while sm < 48 or sm > ln:        
+            #inpt = raw_input("Please insert the desired manginifasion layer: ") 
+            inpt = str(random.randint(0, img_th-1))
+            sm = 0;
+            for ch in inpt:
+                sm = sm + ord(ch)      
   
-        #resize_ = levelDimension[int(inpt)][0]/levelDimension[levelCount-1][0]
+        resize_ = levelDimension[int(inpt)][0]/levelDimension[levelCount-1][0]
         
-        #if type(resize_) != int:
-            #print "resize_ is not integer!"
-            #continue
+        if type(resize_) != int:
+            print "resize_ is not integer!"
+            continue
         
-        #resized_matrix = np.repeat(np.repeat(gray_scale, resize_, axis=0), resize_, axis=1)
-        ##
-        # print np.shape(resized_matrix)
+        resized_matrix = np.repeat(np.repeat(gray_scale, resize_, axis=0), resize_, axis=1)
+         
             
         
-        #max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
-        #if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
-            #max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)
-        #for i in range(1, list_size):
-            #if max_pos_patch_sz > resize_ * (objct_list[0][1] - objct_list[0][0]+1):
-                #max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
-            #if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
-                #max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)            
+        max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
+        if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
+            max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)
+        for i in range(1, list_size):
+            if max_pos_patch_sz > resize_ * (objct_list[0][1] - objct_list[0][0]+1):
+                max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
+            if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
+                max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)            
             
                
         
-        ####define a patch size
-        ##inpt = raw_input("Please insert the desired patch size:")
-        #if max_pos_patch_sz > 24:
-            #mini = 10
-        #else:
-            #mini = 2
-        #inpt = str(random.randint(mini, max_pos_patch_sz))
+        ###define a patch size
+        #inpt = raw_input("Please insert the desired patch size:")
+        if max_pos_patch_sz > 24:
+            mini = 10
+        else:
+            mini = 4
+        inpt = str(random.randint(mini, max_pos_patch_sz))
         
-        #sm = 0
-        #for ch in inpt:
-            #sm = sm + ord(ch)
+        sm = 0
+        for ch in inpt:
+            sm = sm + ord(ch)
             
-        #ln1 = 0        
-        #for ch in str(mini):
-            #ln1 = ln1 + ord(ch)
+        ln1 = 0        
+        for ch in str(mini):
+            ln1 = ln1 + ord(ch)
         
-        #ln2 = 0        
-        #for ch in str(max_pos_patch_sz):
-            #ln2 = ln2 + ord(ch)
+        ln2 = 0        
+        for ch in str(max_pos_patch_sz):
+            ln2 = ln2 + ord(ch)
             
-        #while sm < ln1 or sm > ln2:        
-            ##inpt = raw_input("Please insert the desired patch size:") 
-            #inpt = str(random.randint(mini, max_pos_patch_sz))
-            #sm = 0
-            #for ch in inpt:
-                #sm = sm + ord(ch) 
+        while sm < ln1 or sm > ln2:        
+            #inpt = raw_input("Please insert the desired patch size:") 
+            inpt = str(random.randint(mini, max_pos_patch_sz))
+            sm = 0
+            for ch in inpt:
+                sm = sm + ord(ch) 
                 
-        #patch_size = int(inpt)
+        patch_size = int(inpt)
         
         
           
-        ####overlap size for the patches
-        ##inpt = raw_input("Please insert the horisental_overlaping percentage:(between 0 and 99) ")
-        #inpt = str(random.randint(0, 99))
+        ###overlap size for the patches
+        #inpt = raw_input("Please insert the horisental_overlaping percentage:(between 50 and 99) ")
+        inpt = str(random.randint(50, 99))
         
-        #sm = 0
-        #for ch in inpt:
-            #sm = sm + ord(ch)
+        sm = 0
+        for ch in inpt:
+            sm = sm + ord(ch)
             
-        #ln1 = ord(str(0))
+        ln1 = 0        
+        for ch in str(50):
+            ln1 = ln1 + ord(ch)
         
-        #ln2 = 0        
-        #for ch in str(99):
-            #ln2 = ln2 + ord(ch)
+        ln2 = 0        
+        for ch in str(99):
+            ln2 = ln2 + ord(ch)
             
-        #while sm < ln1 or sm > ln2:        
-            ##inpt = raw_input("Please insert the horisental_overlaping percentage:(between 0 and 99) ") 
-            #inpt = str(random.randint(0,99))
-            #sm = 0;
-            #for ch in inpt:
-                #sm = sm + ord(ch)                 
+        while sm < ln1 or sm > ln2:        
+            #inpt = raw_input("Please insert the horisental_overlaping percentage:(between 50 and 99) ") 
+            inpt = str(random.randint(50,99))
+            sm = 0;
+            for ch in inpt:
+                sm = sm + ord(ch)                 
         
-        #hor_ovlap = int(int(inpt)*patch_size/100)
+        hor_ovlap = int(int(inpt)*patch_size/100)
         
-        #if hor_ovlap == patch_size:
-            #hor_ovlap = hor_ovlap-1
+        if hor_ovlap == patch_size:
+            hor_ovlap = hor_ovlap-1
             
+                   
+        
+        #inpt = raw_input("Please insert the vertical_overlaping percentage:(between 50 and 99) ")
+        inpt = str(random.randint(50, 99))
+        
+        sm = 0
+        for ch in inpt:
+            sm = sm + ord(ch)
+            
+        ln1 = 0        
+        for ch in str(50):
+            ln1 = ln1 + ord(ch)
+        
+        ln2 = 0        
+        for ch in str(99):
+            ln2 = ln2 + ord(ch)
+            
+        while sm < ln1 or sm > ln2:        
+            #inpt = raw_input("Please insert the vertical_overlaping percentage:(between 50 and 99) ") 
+            inpt = str(random.randint(50, 99))
+            sm = 0;
+            for ch in inpt:
+                sm = sm + ord(ch)         
+        
+        ver_ovlap = int(int(inpt)*patch_size/100)        
            
-        
-        
-        ##inpt = raw_input("Please insert the vertical_overlaping percentage:(between 0 and 99) ")
-        #inpt = str(random.randint(0, 99))
-        
-        #sm = 0
-        #for ch in inpt:
-            #sm = sm + ord(ch)
-            
-        #ln1 = ord(str(0))
-        
-        #ln2 = 0        
-        #for ch in str(99):
-            #ln2 = ln2 + ord(ch)
-            
-        #while sm < ln1 or sm > ln2:        
-            ##inpt = raw_input("Please insert the vertical_overlaping percentage:(between 0 and 99) ") 
-            #inpt = str(random.randint(0, 99))
-            #sm = 0;
-            #for ch in inpt:
-                #sm = sm + ord(ch)         
-        
-        #ver_ovlap = int(int(inpt)*patch_size/100)        
-           
-        #if ver_ovlap == patch_size:
-            #ver_ovlap = ver_ovlap-1
+        if ver_ovlap == patch_size:
+            ver_ovlap = ver_ovlap-1
           
           
         
-        ###trace objects of the image based on the patches
-        #per_ = 80 / 100 ##minimum coverage of the convex hull by the patches
-        #patch_list = list()
-        #for n in range(0, objct_num): 
-            #p = 0
-              
-            #for i in range(0,int(((objct_list[n][1] - objct_list[n][0]) * resize_ - ver_ovlap) / (patch_size - ver_ovlap)):
-                #for j in range(0,int(((objct_list[n][3] - objct_list[n][2]) * resize_ - hor_ovlap) / (patch_size - hor_ovlap))):
-                    #w = 0
-                    #tmp = [[-1 for x in range(0,patch_size)] for y in range(0,patch_size)]
+        ##trace objects of the image based on the patches
+        per_ = 80 / 100 ##minimum coverage of the convex hull by the patches
+        patch_list = list()
+        for n in range(0, objct_num):            
+            for i in range(0,int(((objct_list[n][1] - objct_list[n][0]) * resize_ - ver_ovlap) / (patch_size - ver_ovlap))):
+                for j in range(0,int(((objct_list[n][3] - objct_list[n][2]) * resize_ - hor_ovlap) / (patch_size - hor_ovlap))):
+                    w = 0
+                    tmp = [[-1 for x in range(0,patch_size)] for y in range(0,patch_size)]
                     
-                    #for ip in range(i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_), i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_) + patch_size):
-                        #for jp in range(j * (patch_size - hor_ovlap) + objct_list[n][2], j * (patch_size - hor_ovlap) + objct_list[n][2] + patch_size):
-                            #tmp[ip % patch_size][jp % patch_size] = resized_matrix[ip][jp]
-                            #if resized_matrix[ip][jp] == 0:
-                                #w = w+1
+                    for ip in range(i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_), i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_) + patch_size):
+                        for jp in range(j * (patch_size - hor_ovlap) + objct_list[n][2], j * (patch_size - hor_ovlap) + objct_list[n][2] + patch_size):
+                            tmp[ip % patch_size][jp % patch_size] = resized_matrix[ip][jp]
+                            if resized_matrix[ip][jp] == 0:
+                                w = w+1
                                 
                     
-                    #if w > per_ * patch_size:                         
-                        #patch_list.append([n, p, ip, jp])
-                        #p = p+1
+                    if w > per_ * patch_size:                         
+                        patch_list.append([i, j, tmp])
         
             
-        ###save the patch list to a file
-        #file_Name = result_addrs + file_name + "_patch_list"
-        #fileObject = open(file_Name,'wb') 
-        #pickle.dump(patch_list,fileObject)   
-        #fileObject.close()
-  
-        ###save image information to the file
-        #img_info.append([file, levelCount, levelDimension, objct_num, objct_list, resize_, patch_size, ver_ovlap, hor_ovlap])
-        #plt.close('all')
+        ##save the patch list to a file
+        file_Name = result_addrs + file_name + "_patch_list"
+        fileObject = open(file_Name,'wb') 
+        pickle.dump(patch_list,fileObject)   
+        fileObject.close()
+    
+        ##save image information to the file
+        img_info.append([file_name, levelCount, levelDimension, levelDimension[img_th], objct_num, objct_list, resize_, patch_size, ver_ovlap, hor_ovlap])
+        plt.close('all')
+        
+
+        
+##save the information for the the images in a file
+file_Name = result_addrs + "Images_INFO"
+fileObject = open(file_Name,'wb') 
+pickle.dump(img_info,fileObject)   
+fileObject.close()
+
+
+
+##rotate a patch randomly
+patch_ = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+i = random.randint(0, 7)
+
+if i == 0:
+    rand_rot = np.rot90(patch_, k=0)
+if i == 1:
+    rand_rot = np.rot90(patch_, k=1)
+if i == 2:
+    rand_rot = np.rot90(patch_, k=2)
+if i == 3:
+    rand_rot = np.rot90(patch_, k=3)
+if i == 4:
+    rand_rot = np.fliplr(np.rot90(patch_, k=0))
+if i == 5:
+    rand_rot = np.fliplr(np.rot90(patch_, k=1))
+if i == 6:
+    rand_rot = np.fliplr(np.rot90(patch_, k=2))
+if i == 7:
+    rand_rot = np.fliplr(np.rot90(patch_, k=3))
+
+
+
+##showing the position of the patch in the jpeg image of the .ndpi file in 
+ax.imshow(image)
+# Create a Rectangle patch
+rect = patches.Rectangle((patch_list[0]/resize_,patch_list[1]/resize_), patch_size/resize_, patch_size/resize_, linewidth=1, edgecolor='r', facecolor='none')
+# Add the patch to the Axes
+ax.add_patch(rect)
+plt.show()
         
         
-        
-###save the information for the the images in a file
-#file_Name = result_addrs + "Images_INFO"
-#fileObject = open(file_Name,'wb') 
-#pickle.dump(img_info,fileObject)   
-#fileObject.close()
