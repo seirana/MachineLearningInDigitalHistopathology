@@ -17,12 +17,12 @@ def random_rot_mirr(patch_):
     if i == 3:
         patch_ = np.rot90(patch_, k=3, axes=(0,1)) #270 ccw degree rotation 
     if i == 4:
-        patch_ = np.fliplr(np.rot90(patch_, k=0), axes=(0,1)) #0 ccw degree rotation with mirroring
+        patch_ = np.flip(np.rot90(patch_, k=0), (0,1)) #0 ccw degree rotation with mirroring
     if i == 5:
-        patch_ = np.fliplr(np.rot90(patch_, k=1), axes=(0,1)) #90 ccw degree rotation with mirroring
+        patch_ = np.flip(np.rot90(patch_, k=1), (0,1))#90 ccw degree rotation with mirroring
     if i == 6:
-        patch_ = np.fliplr(np.rot90(patch_, k=2), axes=(0,1)) #180 ccw degree rotation with mirroring
+        patch_ = np.flip(np.rot90(patch_, k=2), (0,1)) #180 ccw degree rotation with mirroring
     if i == 7:
-        patch_ = np.fliplr(np.rot90(patch_, k=3), axes=(0,1)) #270 ccw degree rotation with mirroring
-    
+        patch_ = np.flip(np.rot90(patch_, k=3), (0,1)) #270 ccw degree rotation with mirroring
+        
     return patch_
