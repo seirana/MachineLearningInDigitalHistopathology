@@ -19,6 +19,9 @@ measure the performance of the model.
 import os
 os.system('clear')
 
+#from keras import backend as K
+#K.tensorflow_backend._get_available_gpus()
+
 from keras import Sequential
 from keras.layers import Input,Conv2D,MaxPooling2D,UpSampling2D
 from keras.layers.normalization import BatchNormalization
@@ -32,7 +35,7 @@ import math
 """
 load the images on the memory
 """
-img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
+img_addrs = "/media/seirana/16E960B45FBD928C/2019-04-06/Autoencoder/11/runs/Test/"
 file = "01A-D_MaLTT_Ther72h_Casp3_MaLTT_Ther72h_Casp3_01A-D - 2015-07-04 10.27.12_patch_list0.npy"
 
 file_name = img_addrs + file        
@@ -57,8 +60,8 @@ for i in range(0,3):
     mi = np.min(images[:,:,:,i])
     images[:,:,:,i] = (images[:,:,:,i] - mi) / (m - mi)
 
-temp = np.zeros([shp[0],shp[1]-4,shp[2]-4,shp[3]]) #temp = np.zeros([shp[0],shp[1]+4,shp[2]+4,shp[3]]) 
-temp[:,:,:,:] = images[:,2:shp[1]-2,2:shp[2]-2,:] #temp[:,2:shp[1]+2,2:shp[2]+2,:] = images
+temp = np.zeros([shp[0],shp[1]-4,shp[2]-4,shp[3]])  
+temp[:,:,:,:] = images[:,2:shp[1]-2,2:shp[2]-2,:] 
 images = temp
 shp = np.shape(images)
 
@@ -92,8 +95,8 @@ plt.imshow(curr_img, cmap = 'gray')
 plt.savefig(img_addrs + 'tensorflow_images_(01_02)Train_Validation.jpg')
 
 ##The Convolutional Autoencoder!
-batch_size_ = 256
-epochs_ = 3
+batch_size_ = 100
+epochs_ = 300
 inChannel = 3
 x, y = shp[1], shp[2]
 input_img = Input(shape = (x, y, inChannel))
@@ -104,32 +107,34 @@ followed a batch normalization layer.
 Max-pooling layer is used after the first and second convolution blocks.
 """
 ##encoder
-##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
 autoencoder = Sequential()
-autoencoder.add(Conv2D(32, (5, 5), activation='relu', padding='same', input_shape=(x, y, inChannel))) 
+
+##The third block will have 128 filters of size 3 x 3, followed by another downsampling layer
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same', input_shape=(x, y, inChannel))) 
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (5,5), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(MaxPooling2D(pool_size=(2,2))) 
+
+##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same')) 
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
     
 ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(64, (5,5), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64, ((5,5)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
        
 ##The third block will have 128 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(128, (5,5), activation='relu', padding='same')) 
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same')) 
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128, ((5,5)), activation='relu', padding='same'))
-autoencoder.add(BatchNormalization())
-autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
-        
-##The final block of encoder will have 32 filters of size 3 x 3
-autoencoder.add(Conv2D(32, (5,5), activation='relu', padding='same')) 
-autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (5,5), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
+
 
 #decoder
 """
@@ -138,33 +143,32 @@ autoencoder.add(Conv2D(32, (5,5), activation='relu', padding='same'))
     Upsampling layer is used after the first and second convolution blocks.
 """
 ##The first block will have 32 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(128, ((5,5)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128, ((5,5)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
 
 ##The second block will have 16 filters of size 3 x 3 followed by a upsampling layer    
-autoencoder.add(Conv2D(64, ((5,5)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64, ((5,5)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
     
 ##The second block will have 8 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(32, (5,5), activation='relu', padding='same'))
+autoencoder.add(Conv2D(8,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (5,5), activation='relu', padding='same'))
+autoencoder.add(Conv2D(8,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
-    
+
+##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
+autoencoder.add(Conv2D(3,(3,3), activation='sigmoid', padding='same', name="lastLayer"))
+
 ##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
 autoencoder.summary()
-    
-##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
-autoencoder.add(Conv2D(3, (5,5), activation='sigmoid', padding='same', name="lastLayer"))
-#last_layer = autoencoder.layers[-1]
-#autoencoder = Model(inputs=input_img, outputs=last_layer(input_img))
+
 autoencoder.compile(loss='mean_squared_logarithmic_error', optimizer = RMSprop())
 
 ##train the model with Keras' fit() function
@@ -201,55 +205,12 @@ for i in range(5):
     curr_img = curr_img.tolist()
     plt.imshow(curr_img, cmap='gray') 
     plt.savefig(img_addrs + 'tensorflow_images_(06)Reconstruction of Test Images.jpg')
-
-##Predicting on Noisy images
-##First let's add some noise into the validation images with a mean zero and standard deviation of 0.03.
-[a,b,c,d]= np.shape(valid_X)
-mean = 0
-sigma = 0.03
-gauss = np.random.normal(mean,sigma,(a,b,c,d))
-noisy_images = valid_X + gauss
-
-pred_noisy = autoencoder.predict(noisy_images)
-plt.figure(figsize=(20, 4))
-print("Noisy Test Images")
-for i in range(5):
-    plt.subplot(1, 5, i+1)
-    curr_img = np.reshape(noisy_images[i], (shp[1],shp[2],shp[3]))
-    curr_img = curr_img.tolist()
-    plt.imshow(curr_img, cmap='gray')
-    plt.savefig(img_addrs + 'tensorflow_images_(07)Noisy Images.jpg')
-  
-plt.figure(figsize=(20, 4))
-print("Reconstruction of Noisy Test Images")
-for i in range(5):
-    plt.subplot(1, 5, i+1)
-    curr_img = np.reshape(pred_noisy[i], (shp[1],shp[2],shp[3]))
-    curr_img = curr_img.tolist()
-    plt.imshow(curr_img, cmap='gray') 
-    plt.savefig(img_addrs + 'tensorflow_images_(08)Reconstruction of Noisy Images.jpg')
-
-##Quantitative Metric: Peak Signal-to-Noise Ratio (PSNR)
-"""
-The PSNR block computes the peak signal-to-noise ratio, in decibels(dB), between two images. 
-This ratio is often used as a quality measurement between the original and a reconstructed image. 
-The higher the PSNR, the better the quality of the reconstructed image.
-"""
-valid_pred = autoencoder.predict(valid_X)
-mse =  np.mean((valid_X - valid_pred) ** 2)
-psnr = 20 * math.log10( 1.0 / math.sqrt(mse))
-print('PSNR of reconstructed validation images: {psnr}dB'.format(psnr=np.round(psnr,2)))
-
-noisy_pred = autoencoder.predict(noisy_images)
-mse =  np.mean((valid_X - noisy_pred) ** 2)
-psnr_noisy = 20 * math.log10( 1.0 / math.sqrt(mse))
-print('PSNR of reconstructed noisy images: {psnr}dB'.format(psnr=np.round(psnr_noisy,2)))
 #################################################
 """
 The history object is returned from calls to the fit() function used to train the model. 
 Metrics are stored in a dictionary in the history member of the object returned.
 """
-img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
+img_addrs = "/home/seirana/Desktop/runs/Test/"
 test_file = "01A-D_MaLTT_Ther72h_F4-80_MaLTT_Ther72h_F4-80_01A-D - 2015-07-04 10.38.21_patch_list0.npy"
 test_file_name = img_addrs + test_file        
 test_patch_list = np.load(test_file_name)
@@ -279,7 +240,7 @@ print('PSNR of reconstructed test images: {psnr}dB'.format(psnr=np.round(psnr_te
 The history object is returned from calls to the fit() function used to train the model. 
 Metrics are stored in a dictionary in the history member of the object returned.
 """
-img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
+img_addrs = "/home/seirana/Desktop/runs/Test/"
 test_file = "31A-D_MaLTT_Ctrl24h_Casp3_2016-06-07_patch_list0.npy"
 test_file_name = img_addrs + test_file        
 test_patch_list = np.load(test_file_name)
@@ -293,8 +254,6 @@ for i in range(0,3):
     mi = np.min(test_images[:,:,:,i])
     test_images[:,:,:,i] = (test_images[:,:,:,i] - mi) / (m - mi)
 
-#temp = np.zeros([test_shp[0],test_shp[1]+4,test_shp[2]+4,test_shp[3]])
-#temp[:,2:test_shp[1]+2,2:test_shp[2]+2,:] = test_images
 temp = np.zeros([test_shp[0],test_shp[1]-4,test_shp[2]-4,test_shp[3]]) 
 temp[:,:,:,:] = test_images[:,2:test_shp[1]-2,2:test_shp[1]-2,:] 
 test_images = temp

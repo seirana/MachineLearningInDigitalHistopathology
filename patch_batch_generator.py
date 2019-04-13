@@ -1,47 +1,39 @@
 ## Importing the modules
-import os
-os.system('clear')
-
 import numpy as np
-import math
-from random import randint
-from numpy.matrix import sum
-from OpenSlide_reader import read_openslide
+from sizebased_sampling import make_random_list
+from get_patch_tissues import get_patch_tissuepeices
 '''
-inputs:
-patch_num: number of patches from each image we want to select for train and validation or test
-information: file with information of images: {number of objects, objects positions, threshhold}
-result_addrs: the address to read convexhulls and ...
-level_from: the level to extract small and grayscale patches
-level_to: to conver the biggest image
+inputs:    
+    result_addrs: the address to read information and files
+    patch_size:size for patches 
+    batch_sz: number of patches is needed for each batch
 '''
 
-def patches_for_batches(patch_num, information, result_addrs, level_from, level_to, patch_size):
-    mini_patch_size = 8 #patch_size / 2^(level_to /level_from)  
-    for i in len(information):
-        patch_object = patch_num/information[i][6] #information[i][6] = number of objects on the image
-        convex_hull = np.load(result_addrs + information[i][0]) #read the convex_hull for the i-th image to check the convex hull coverage
-        gray_scale_image = np.load(result_addrs + file_name + '_grayscale') #read the gray scale image for the i-th image to check the background color
-        objct = read_openslide(information[i][0],information[i][6], i, result_addrs, level_from, level_to, patch_size)
-        for j in range(0,information[i][6]):
-            extracted_patches = 0
-            while extracted_patches < patch_object:
-                x = randint(information[i][7][0],information[i][7][1]-mini_patch_size) #produce a random number inside the object's rectangle, width
-                y = randint(information[i][7][2],information[i][7][3]-mini_patch_size) #produce a random number inside the object's rectangle, height
-                mini_patch = convex_hull[x:x+mini_patch_size, y:y+mini_patch_size]
-                mini_patch_summation = mini_patch.sum
-                #check_covexhull_coverage
-                if mini_patch_summation == (mini_patch_size^2)* 255: #the whole matrix must be inside the convex hull
-                    #check_threshhold_coverage
-                    mini_gray_scale = gray_scale_image[x:x+mini_patch_size, y:y+mini_patch_size]
-                    bg_check = 0
-                    for w in range(0,mini_patch_size):
-                        for h in range(0,mini_patch_size):
-                            if mini_gray_scale[w][h] > information[i][5]: #information[i][1] = background color
-                                bg_check +=1
-                    
-                    if bg_check == mini_patch_size^2:
-                        #resize the mini patch to a real patch going from level_from to level_to 
-                        randW_walk = randint(0,patch_size) #produce a random number
-                        randH_walk = randint(0,patch_size) #produce a random number
-                        patch = objct(x+randW_walk:x+randW_walk+patch_size, y+randH_walk:y+randH_walk+patch_size) #return a patch in level_to image
+def patches_for_batches(addrs, patch_size, batch_sz, resolution, tt):
+    '''slides: file with information of slides:
+       {slide name, number of resolusion levels, list of dimension resolusions, 
+        resolusion us used for preprocessing, threshold, list of tissue pieces, 
+        position of tissue piece}
+    '''
+    slides= np.load(addrs+'_SlidesInfo_dic.npy') #load a file to read information related to slides and tissue pieces on them
+    train_test = np.load(addrs+'train_test_list.npy') #read a list to know if the slide will be used for train or test
+    slide_weight = make_random_list(addrs, batch_sz) #make a random list, to split the batch size for extracting random number of patches from slides
+    batch_data = list() #make a list to save patches for each batch
+    for slide_th in slides.item(): #for all silde
+        if tt == 'train':
+            print(slide_th)
+            if train_test[slide_th] == 'train': #if the slide was selected for train
+                batch_data = get_patch_tissuepeices(addrs, slide_th, slides.item().get(slide_th),\
+                                                    slide_weight[slide_th],\
+                                                    batch_data,\
+                                                    slides.item().get(slide_th)['magnification_level'],\
+                                                    resolution, patch_size) #extract patches from tissues from all slides
+        else:
+            if train_test[slide_th] == 'test': #if the slide was selected for test
+                batch_data = get_patch_tissuepeices(addrs, slide_th, slides.item().get(slide_th),\
+                                                    slide_weight[slide_th],\
+                                                    batch_data,\
+                                                    slides.item().get(slide_th)['magnification_level'],\
+                                                    resolution, patch_size) #extract patches from tissues from all slides
+
+    return batch_data
