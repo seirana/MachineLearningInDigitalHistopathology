@@ -13,6 +13,7 @@ import math
 import Image_Properties as IMG ##mine
 #import Random_Rotation_Mirroring as RRM ##mine
 
+
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
 result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"
 
@@ -24,11 +25,11 @@ img_info.append(["FileName", "levelCount", "levelDimension", "objct_num", "objct
 for file in sorted(os.listdir(img_addrs)):
     if file.endswith(".ndpi"):       
     
-        file_name = file.replace('.ndpi','') 
+        file_name = file.replace('.ndpi','')
+        print file_name
         slide = openslide.OpenSlide(img_addrs + file)
         levelCount = slide.level_count    
         levelDimension = slide.level_dimensions          
-        
         
         ##read the image in desired level, convert it to gray scale and save it as a .jpeg file 
         for i in range(0,levelCount):
@@ -65,15 +66,15 @@ for file in sorted(os.listdir(img_addrs)):
             opened = opening(gray_scale, selem)
             dilated = dilation(opened, selem)
             closed = closing(dilated, selem)
-                    
+               
             tst = []
             for j in range(0,arr[1]):
                 tst.append(0)
                 for i in range(0,arr[0]):
-                    tst[j] = tst[j] + gray_scale[i][j]
+                    tst[j] = tst[j] + gray_scale[i][j]     
                     
             sz = int(0.1 * arr[1])
-            tmp = 0;
+            tmp = 0
             rec_ = 0
             for j in range(0,arr[1]-sz):
                 for i in range(0,sz+1):
@@ -103,7 +104,6 @@ for file in sorted(os.listdir(img_addrs)):
         for i in range(0,levelDimension[img_th][1]):
             for j in range(0,levelDimension[img_th][0]):
                 if gray_scale[i][j] == 0:
-
                     mat[i][j] = 255  
                 else:
                     mat[i][j] = 0
@@ -211,7 +211,7 @@ for file in sorted(os.listdir(img_addrs)):
             cnt_pre = [0, 0, 0]
             cnt = 0
     
-            for i in range(0, sz[0]):
+            for i in range(0, sz[0]):                
                 tmp = cnt_pre
                 cnt_pre = [tmp[1], tmp[2], cnt]
                 cnt = 0
@@ -220,8 +220,8 @@ for file in sorted(os.listdir(img_addrs)):
                         cnt = 1
                         break
     
-                if cnt == 1:
-                    if cnt_pre[0] + cnt_pre[1] + cnt_pre[2] == 0:                        
+                if cnt == 1 and i < sz[0]-4:
+                    if cnt_pre[0] + cnt_pre[1] + cnt_pre[2] == 0:   
                         objct_list.append([i, i, objct[n][0], objct[n][1]]) 
                         objct_num = objct_num+1
     
@@ -230,7 +230,7 @@ for file in sorted(os.listdir(img_addrs)):
                         objct_list.append([nc[0], i, nc[2], nc[3]])
     
                 else:
-                    if cnt_pre[0] == 1 and cnt_pre[1] == 0 and cnt_pre[2] == 0:                           
+                    if (cnt == 0 and cnt_pre[0] == 1 and cnt_pre[1] == 0 and cnt_pre[2] == 0) or (cnt == 1 and i > sz[0]-3):                     
                         if (objct_list[objct_num][1] - objct_list[objct_num][0]) < (0.05 * sz[0]):
                             for k in range(objct[n][0], objct[n][1]+1):
                                 for t in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
@@ -301,9 +301,9 @@ for file in sorted(os.listdir(img_addrs)):
            
             
         ##define the new image size (resizing)
-        print "There are different magnification levels,"
-        for i in range(0, img_th): 
-            print "level ", i, ":", levelDimension[i]
+        #print "There are different magnification levels,"
+        #for i in range(0, img_th): 
+            #print "level ", i, ":", levelDimension[i]
 
         #inpt = raw_input("Please choose the desired manginifasion layer: ") 
         #inpt = str(random.randint(0, img_th-1))
@@ -347,7 +347,12 @@ for file in sorted(os.listdir(img_addrs)):
             mini = 4
         #inpt = raw_input("Please insert the desired patch size:(between", mini, "and", max_pos_patch_sz)    
         #inpt = str(random.randint(mini, max_pos_patch_sz))
-        inpt = str(100)
+        if max_pos_patch_sz > 100:
+            inpt = str(100)
+        else:
+            print "patch size is: ", max_pos_patch_sz
+            continue
+        
         sm = 0
         for ch in inpt:
             sm = sm + ord(ch)
@@ -463,7 +468,7 @@ for file in sorted(os.listdir(img_addrs)):
                     for i in range(1,x_-1):
                         tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*i), 0, (width_, new_heigth_))
                         t_mat= np.array(tmp_img)
-                        np.concatenate(max_mag_lev_obj, t_mat)  
+                        max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)  
            
                 tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*(x_-1)), 0, (width_, heigth_-new_heigth_*(x_-1)))
                 t_mat= np.array(tmp_img)
@@ -490,6 +495,7 @@ for file in sorted(os.listdir(img_addrs)):
         del(patch_list)  
         del(patch_info)
         del(resized_matrix)
+        del(max_mag_lev_obj)
         img_info.append([file_name, levelCount, levelDimension, img_th, objct_num, objct_list, resize_, patch_size, ver_ovlap, hor_ovlap])
         plt.close('all')
         
