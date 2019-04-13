@@ -6,7 +6,7 @@
 import numpy as np
 import random
 
-def make_random_list(addrs, batch_size):
+def make_random_list(addrs, batch_size, tt):
 
     tissues_slides = np.load(addrs+'tissues_slides_space_percentage.npy') #is a list
     train_test = np.load(addrs+'train_test_list.npy')[()] #is a list
@@ -14,7 +14,7 @@ def make_random_list(addrs, batch_size):
     weight_list_length = 0 #if slide one has weight = 3 and slide two has weight 4 then the weight_list_length = 7
     weight = np.zeros(slides)
     for i in range(0,slides): # for all slides do
-        if train_test[i] == 'train': #the slide selected for train set
+        if train_test[i] == tt: #the slide selected for train set
             for j in range(0,len(tissues_slides[i])):
                 weight[i] += tissues_slides[i][j]
                 
@@ -41,14 +41,12 @@ def make_random_list(addrs, batch_size):
          
             weight[i]  = w
             weight_list_length += weight[i]
-
     weight_list_length = int(weight_list_length)
     lst = []    
     while len(lst) < weight_list_length-1:
         r=random.randint(1,batch_size)
-        if r not in lst: lst.append(r)
-    
-    print(weight_list_length)    
+        if r not in lst: lst.append(r)   
+     
     lst = np.sort(lst)
     lst_s = np.zeros(weight_list_length)
     lst_s[0] = lst[0]
@@ -60,9 +58,8 @@ def make_random_list(addrs, batch_size):
 
     cnt = 0
     for i in range(0,slides):
-         if train_test[i] == 1: 
+         if train_test[i] == tt:
             for j in range(cnt,cnt+int(weight[i])):
                 slide_weight[i] += lst_s[j]
-            cnt += int(weight[i])   
-            
+            cnt += int(weight[i])  
     return slide_weight

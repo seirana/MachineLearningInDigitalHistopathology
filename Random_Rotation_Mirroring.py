@@ -24,5 +24,4 @@ def random_rot_mirr(patch):
         patch = np.flip(np.rot90(patch, k=2), (0,1)) #180 ccw degree rotation with mirroring
     if i == 7:
         patch = np.flip(np.rot90(patch, k=3), (0,1)) #270 ccw degree rotation with mirroring
-        
     return patch

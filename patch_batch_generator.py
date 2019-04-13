@@ -16,19 +16,18 @@ def patches_for_batches(addrs, patch_size, batch_sz, resolution, tt):
         position of tissue piece}
     '''
     slides= np.load(addrs+'_SlidesInfo_dic.npy') #load a file to read information related to slides and tissue pieces on them
-    train_test = np.load(addrs+'train_test_list.npy') #read a list to know if the slide will be used for train or test
-    slide_weight = make_random_list(addrs, batch_sz) #make a random list, to split the batch size for extracting random number of patches from slides
+    train_test = np.load(addrs+'train_test_list.npy')[()] #read a list to know if the slide will be used for train or test
+    slide_weight = make_random_list(addrs, batch_sz, tt) #make a random list, to split the batch size for extracting random number of patches from slides
     batch_data = list() #make a list to save patches for each batch
     for slide_th in slides.item(): #for all silde
         if tt == 'train':
-            print(slide_th)
             if train_test[slide_th] == 'train': #if the slide was selected for train
                 batch_data = get_patch_tissuepeices(addrs, slide_th, slides.item().get(slide_th),\
                                                     slide_weight[slide_th],\
                                                     batch_data,\
                                                     slides.item().get(slide_th)['magnification_level'],\
                                                     resolution, patch_size) #extract patches from tissues from all slides
-        else:
+        if tt == 'test':
             if train_test[slide_th] == 'test': #if the slide was selected for test
                 batch_data = get_patch_tissuepeices(addrs, slide_th, slides.item().get(slide_th),\
                                                     slide_weight[slide_th],\

@@ -6,8 +6,8 @@ import matplotlib.image as mpimg
 import cv2
 
 #def convexhull_margins(addrs):
-addrs = "/home/seirana/Documents/Test_fit_generator/Convex Hull/"
-slides = np.load(addrs+"slides_info.npy") #slides is a nested dictionary
+addrs = "/home/seirana/Desktop/Workstation/casp3/"
+slides = np.load(addrs+"_SlidesInfo_dic.npy") #slides is a nested dictionary
 all_white = 255*9
 for slide_th in slides.item():  
     convex_hull = mpimg.imread(addrs+slides.item().get(slide_th)['slide_ID'] + "_(5)convex_hull.jpg")

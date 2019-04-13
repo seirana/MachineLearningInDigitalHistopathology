@@ -13,6 +13,9 @@ import numpy as np
 from train_test_random_list import make_rand_list
 from fit_generator import patch_generator
 from tissues_slides_list_percentage import tissues_slides_list
+from keras import backend as K
+K.tensorflow_backend._get_available_gpus()
+
 addrs = "/home/seirana/Desktop/Workstation/casp3/"
 result_addrs = "/home/seirana/Desktop/Workstation/casp3/code/"
 img_lst = np.load(addrs + "_SlidesInfo_dic.npy")[()]
@@ -20,7 +23,7 @@ patch_size = 256
 inChannel = 3 #RGB images
 x, y = patch_size, patch_size
 input_img = Input(shape = (x, y, inChannel))
-
+print(input_img)
 ##Data Preprocessing
 """
 Encoder: It has 5 Convolution blocks, each block has a convolution layer 
@@ -153,13 +156,13 @@ use_multiprocessing: Boolean. If True, use process-based threading.
 '''
 call functions to generate train and validation data for each bach
 '''
-epochs_ = 1000 #number of epochs, we will have
-batch_sz = 1000 #the batch siz,we we will take
+epochs_ = 10#number of epochs, we will have
+batch_sz = 100 #the batch siz,we we will take = TrainingBatchSize + ValidationBatchSize
 train_per = 0.8 #the percentage of data, which will be used for training
 validation_per = 1-train_per
-all_patchs = 600000 #number of patches we want to extract of each image
-steps_per_epoch_ = int(all_patchs * train_per / batch_sz) #TotalTrainingSamples / TrainingBatchSize
-validation_steps_ = int(all_patchs * validation_per / batch_sz) #TotalvalidationSamples / ValidationBatchSize
+all_patchs = 1000 #number of all patches we want to extract
+steps_per_epoch_ = int(all_patchs/batch_sz) #TotalTrainingSamples / TrainingBatchSize
+validation_steps_ = int(all_patchs/batch_sz) #TotalvalidationSamples / ValidationBatchSize
 
 '''
 process the data
@@ -169,31 +172,31 @@ autoencoder.summary()
 autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
 resolution = 0
-array_length = len(img_lst)
-train_per = 0.8
 #make_rand_list(addrs, len(img_lst), train_per)
 #tissues_slides_list()
-earlystop = EarlyStopping(monitor='val_loss', min_delta=0.01, patience=10, verbose=0, mode='min', baseline=None, restore_best_weights=False)
-modelcheckpoint = ModelCheckpoint(result_addrs+'best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
-autoencoder_train = autoencoder.fit_generator(patch_generator(addrs, patch_size, batch_sz, resolution, array_length, train_per, 'train'),\
+#earlystop = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=50, verbose=0, mode='min', baseline=None, restore_best_weights=True)
+#modelcheckpoint = ModelCheckpoint(result_addrs+'best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
+autoencoder_train = autoencoder.fit_generator(patch_generator(addrs, patch_size, batch_sz, resolution, 'train'),\
                                               steps_per_epoch=steps_per_epoch_,\
                                               epochs=epochs_,\
                                               verbose=1,\
-                                              callbacks=[earlystop, modelcheckpoint],\
-                                              validation_data=patch_generator(addrs, patch_size, batch_sz, resolution, array_length, train_per, 'test'),\
+#                                              callbacks=[earlystop, modelcheckpoint],\
+                                              callbacks = None,\
+                                              validation_data=patch_generator(addrs, patch_size, batch_sz, resolution, 'test'),\
                                               validation_steps=validation_steps_,\
                                               class_weight=None,\
                                               max_queue_size=10,\
                                               workers=1,\
                                               use_multiprocessing=True,\
-                                              shuffle=True,\
+                                              shuffle=False,\
                                               initial_epoch=0)
 '''end'''
 
-# load the saved model
+#load the saved model
 saved_model = load_model(result_addrs+'best_model.h5')
 # evaluate the model
 ##the summary function, this will show the number of parameters (weights and biases) in each layer and also the total parameters in the model
+
 for layer in saved_model.layers:
     if layer.name == "code":
         print(layer.name)
