@@ -30,65 +30,16 @@ for file in sorted(os.listdir(img_addrs)):
         img = slide.get_thumbnail(levelDimension[img_th])        
         image = np.array(img)
         gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        org_gray_scale = np.copy(gray_scale)
-       
-
-        ##find and apply isodata threshold on the image 
-        correct_thresh = False        
-        while correct_thresh == False:
-            gray_scale = np.copy(org_gray_scale)             
-            iso_thresh = threshold_isodata(gray_scale)            
-            arr = np.shape(gray_scale) 
-            
-            for i in range(0,arr[0]):
-                for j in range(0,arr[1]):
-                    if gray_scale[i][j] >= iso_thresh:
-                        gray_scale[i][j] = 255
-                    else: 
-                        gray_scale[i][j] = 0 
-            
-            
-            ##apply binary morphological filters on the image(opening, dilation, closing) and save it
-            selem = disk(6) 
-            opened = opening(gray_scale, selem)
-            dilated = dilation(opened, selem)
-            closed = closing(dilated, selem)
-               
-            tst = []
-            for j in range(0,arr[1]):
-                tst.append(0)
-                for i in range(0,arr[0]):
-                    tst[j] = tst[j] + gray_scale[i][j]     
-                    
-            sz = int(0.1 * arr[1])
-            tmp = 0
-            rec_ = 0
-            for j in range(0,arr[1]-sz):
-                for i in range(0,sz+1):
-                    tmp = tmp + tst[j+i]
-                    
-                if tmp == 0:
-                    rec_ = 1
-                    break
-                
-            if rec_ == 1:    
-                for i in range(0,levelDimension[img_th][1]):
-                    for j in range(0,levelDimension[img_th][0]):
-                        if org_gray_scale[i][j] >= iso_thresh:
-                            org_gray_scale[i][j]  = iso_thresh-1 
-            else:
-                correct_thresh = True                
-                      
-        gray_scale = np.copy(closed) 
-        
+        iso_thresh = threshold_isodata(gray_scale)   
+        arr = np.shape(gray_scale)
         pixel = np.zeros(shape=(1,256))
         for i in range(0,arr[0]):
             for j in range(0,arr[1]):
                 pixel[0][gray_scale[i][j]] += 1
+      
         for i in range(0,256):
             pixel[0][i] = pixel[0][i]/arr[0]*arr[1]
             
-        img_info.append([file, pixel, iso_thresh]) 
+        img_info.append([file, pixel, iso_thresh, pixel[0][iso_thresh]])
         
-adr = result_addrs + "pixel" 
-np.save(adr, np.asanyarray(img_info))
+np.save(result_addrs + "pixel", np.asarray(img_info,dtype= object))
