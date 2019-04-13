@@ -23,10 +23,11 @@ from keras.layers import Input,Conv2D,MaxPooling2D,UpSampling2D
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from keras.optimizers import  RMSprop
-import numpy as np
-from sklearn.model_selection import train_test_split
-import math
 from matplotlib import pyplot as plt
+from sklearn.model_selection import train_test_split
+
+import numpy as np
+import math
 
 ##Loading the data
 """
@@ -106,32 +107,32 @@ Max-pooling layer is used after the first and second convolution blocks.
 ##encoder
 ##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
 def autoencoder(input_img):
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img) 
+    conv1 = Conv2D(8, (3, 3), activation='relu', padding='same')(input_img) 
     conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(32, (3,3), activation='relu', padding='same')(conv1)
+    conv1 = Conv2D(8, (3,3), activation='relu', padding='same')(conv1)
     conv1 = BatchNormalization()(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) 
     
     ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-    conv2 = Conv2D(64, (3,3), activation='relu', padding='same')(pool1) 
+    conv2 = Conv2D(8, (3,3), activation='relu', padding='same')(pool1) 
     conv2 = BatchNormalization()(conv2)
-    conv2 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv2)
+    conv2 = Conv2D(8, ((3,3)), activation='relu', padding='same')(conv2)
     conv2 = BatchNormalization()(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) 
        
     ##The third block will have 64 filters of size 3 x 3, followed by another downsampling layer
-    conv3 = Conv2D(128, (3,3), activation='relu', padding='same')(pool2) 
+    conv3 = Conv2D(16, (3,3), activation='relu', padding='same')(pool2) 
     conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv3)
+    conv3 = Conv2D(16, ((3,3)), activation='relu', padding='same')(conv3)
     conv3 = BatchNormalization()(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3) 
         
     ##The final block of encoder will have 128 filters of size 3 x 3
-    conv4 = Conv2D(256, ((3,3)), activation='relu', padding='same')(pool3) 
+    conv4 = Conv2D(16, ((3,3)), activation='relu', padding='same')(pool3) 
     conv4 = BatchNormalization()(conv4)
-    conv4 = Conv2D(256, ((3,3)), activation='relu', padding='same')(conv4)
+    conv4 = Conv2D(16, ((3,3)), activation='relu', padding='same')(conv4)
     conv4 = BatchNormalization()(conv4)    
-   
+    
     #decoder
     """
     Decoder: It has 2 Convolution blocks, each block has a convolution layer 
@@ -139,23 +140,23 @@ def autoencoder(input_img):
     Upsampling layer is used after the first and second convolution blocks.
     """
     ##The first block will have 128 filters of size 3 x 3 followed by a upsampling layer
-    conv5 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv4) #7 x 7 x 128
+    conv5 = Conv2D(16, ((3,3)), activation='relu', padding='same')(conv4) #7 x 7 x 128
     conv5 = BatchNormalization()(conv5)
-    conv5 = Conv2D(128, ((3,3)), activation='relu', padding='same')(conv5)
+    conv5 = Conv2D(16, ((3,3)), activation='relu', padding='same')(conv5)
     conv5 = BatchNormalization()(conv5)
     up1 = UpSampling2D((2,2))(conv5) # 14 x 14 x 128
     
     ##The second block will have 128 filters of size 3 x 3 followed by a upsampling layer
-    conv6 = Conv2D(64, ((3,3)), activation='relu', padding='same')(up1) #7 x 7 x 128
+    conv6 = Conv2D(8, ((3,3)), activation='relu', padding='same')(up1) #7 x 7 x 128
     conv6 = BatchNormalization()(conv6)
-    conv6 = Conv2D(64, ((3,3)), activation='relu', padding='same')(conv6)
+    conv6 = Conv2D(8, ((3,3)), activation='relu', padding='same')(conv6)
     conv6 = BatchNormalization()(conv6)
     up2 = UpSampling2D((2,2))(conv6) # 14 x 14 x 128
     
     ##The third block will have 64 filters of size 3 x 3 followed by another upsampling layer
-    conv7 = Conv2D(32, ((3,3)), activation='relu', padding='same')(up2) # 14 x 14 x 64
+    conv7 = Conv2D(8, ((3,3)), activation='relu', padding='same')(up2) # 14 x 14 x 64
     conv7 = BatchNormalization()(conv7)
-    conv7 = Conv2D(32, ((3,3)), activation='relu', padding='same')(conv7)
+    conv7 = Conv2D(8, ((3,3)), activation='relu', padding='same')(conv7)
     conv7 = BatchNormalization()(conv7)
     up3 = UpSampling2D((2,2))(conv7) # 28 x 28 x 64
     

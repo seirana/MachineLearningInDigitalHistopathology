@@ -540,7 +540,7 @@ for file in sorted(os.listdir(img_addrs)):
                     if summation <= per_ * (patch_size ** 2):
                         break
                     else:
-                        if len(patch_list) > ((5*(10**8))/(patch_size**2)): #the size of the matrix should be less than 4GB
+                        if len(patch_list) > ((5*(10**8))/(patch_size**2)): #images are RGBA(4D) #the size of the matrix should be less than 4GB
                             file_Name = result_addrs + file_name + "_patch_list" + str(ls)
                             np.save(file_Name, np.asarray(patch_list,dtype= object))
                             ls += 1
