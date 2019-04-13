@@ -9,32 +9,49 @@ from PIL import Image
 from skimage.filters import threshold_isodata
 from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
 import matplotlib.patches as patches
-
+import slide_properties
 
 
 ndpi_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
 result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"
 img_info = list()
-img_info.append(["FileName", "levelCount", "levelDmension", "objct_num", "objct_list", "resize", "vertical overlap", "horisental overlap"])
-
+img_info.append(["FileName", "levelCount", "levelDimension", "objct_num", "objct_list", "resize", "vertical overlap", "horisental overlap"])
+img_pro = list()
+img_pro.append(["File name", "Level count", "Level dimension", "Quickhash", "Objective power", "Vendor", "Bounds color", "comment", "MAPP X", "MPP Y", "Bounds X", "Bounds Y", "Bounds width", "Bounds height"])
 
 for file in sorted(os.listdir(ndpi_addrs)):
     if file.endswith(".ndpi"): 
         file_name = file.replace('.ndpi','')
         
-        ##open the .ndpi file and find the level_count  and level dimmensions      
-        slide = openslide.OpenSlide(ndpi_addrs + file)
-        levelCount = slide.level_count       
-        levelDimension = slide.level_dimensions
-        w = slide.PROPERTY_NAME_BACKGROUND_COLOR
-        #w = slide.PROPERTY_NAME_OBJECTIVE_POWER
-        #w = slide.PROPERTY_NAME_VENDOR
-        #w = slide.PROPERTY_NAME_BOUNDS_WIDTH
-        #w = slide.PROPERTY_NAME_COMMENT
-        #w = slide.PROPERTY_NAME_MPP_X
-        #w = slide.PROPERTY_NAME_MPP_X
-        print w
+        ##open the .ndpi file and find the level_count  and level dimmensions and other attributes of the image (if known)     
+        def slide_properties(slide_name):
+            
+            slide = openslide.OpenSlide(ndpi_addrs + file)
+            levelCount = slide.level_count    
+            levelDimension = slide.level_dimensions
+            w0 = slide.properties.get(openslide.PROPERTY_NAME_QUICKHASH1)
+            w1 = slide.properties.get(openslide.PROPERTY_NAME_OBJECTIVE_POWER)
+            w2 = slide.properties.get(openslide.PROPERTY_NAME_BACKGROUND_COLOR)
+            w3 = slide.properties.get(openslide.PROPERTY_NAME_VENDOR)
+            w4 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_WIDTH)
+            w5 = slide.properties.get(openslide.PROPERTY_NAME_COMMENT)
+            w6 = slide.properties.get(openslide.PROPERTY_NAME_MPP_X)
+            w7 = slide.properties.get(openslide.PROPERTY_NAME_MPP_Y)
+            w8 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_X)        
+            w9 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_Y)        
+            w10 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_WIDTH)        
+            w11 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_HEIGHT)
+            
+            img_pro.append([file_name, levelCount, levelDimension, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11])
+            return
+        
+        
+        # should go to the end of the file 
+        np.savetxt("/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/AAA.csv", img_pro, fmt='%s')   
 
+    
+    
+    
         ##read the image in desired level, convert it to gray scale and save it as a .jpeg file 
         for i in range(0,levelCount):
             if levelDimension[levelCount-i-1][0] > 2000 and levelDimension[levelCount-i-1][1] > 1000:
@@ -509,34 +526,41 @@ fileObject = open(file_Name,'wb')
 pickle.dump(img_info,fileObject)   
 fileObject.close()
 
+class random_rot_mirr:
+
+    ##rotate a patch randomly
+    i = random.randint(0, 7)
+    
+    if i == 0:
+        rand_rot_mirr = np.rot90(patch_, k=0)
+    if i == 1:
+        rand_rot_mirr = np.rot90(patch_, k=1)
+    if i == 2:
+        rand_rot_mirr = np.rot90(patch_, k=2)
+    if i == 3:
+        rand_rot_mirr = np.rot90(patch_, k=3)
+    if i == 4:
+        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=0))
+    if i == 5:
+        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=1))
+    if i == 6:
+        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=2))
+    if i == 7:
+        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=3))
+        
+    return rant_rot_mirr
 
 
-##rotate a patch randomly
-i = random.randint(0, 7)
 
-if i == 0:
-    rand_rot = np.rot90(patch_, k=0)
-if i == 1:
-    rand_rot = np.rot90(patch_, k=1)
-if i == 2:
-    rand_rot = np.rot90(patch_, k=2)
-if i == 3:
-    rand_rot = np.rot90(patch_, k=3)
-if i == 4:
-    rand_rot = np.fliplr(np.rot90(patch_, k=0))
-if i == 5:
-    rand_rot = np.fliplr(np.rot90(patch_, k=1))
-if i == 6:
-    rand_rot = np.fliplr(np.rot90(patch_, k=2))
-if i == 7:
-    rand_rot = np.fliplr(np.rot90(patch_, k=3))
-
-
-
-##showing the position of the patch in the jpeg image of the .ndpi file in 
-ax.imshow(image)
-# Create a Rectangle patch
-rect = patches.Rectangle((patch_list[0]/resize_,patch_list[1]/resize_), patch_size/resize_, patch_size/resize_, linewidth=1, edgecolor='r', facecolor='none')
-# Add the patch to the Axes
-ax.add_patch(rect)
-plt.show()
+# in progress
+class get_patch:    
+    
+    ##showing the position of the patch in the jpeg image of the .ndpi file in 
+    ax.imshow(image)
+    # Create a Rectangle patch
+    rect = patches.Rectangle((patch_list[0]/resize_,patch_list[1]/resize_), patch_size/resize_, patch_size/resize_, linewidth=1, edgecolor='r', facecolor='none')
+    # Add the patch to the Axes
+    ax.add_patch(rect)
+    #plt.show()
+    return 
+    
