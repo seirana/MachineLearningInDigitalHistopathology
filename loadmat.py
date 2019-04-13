@@ -20,7 +20,8 @@ img_info.append(["FileName", "levelCount", "levelDmension", "objct_num", "objct_
 for file in sorted(os.listdir(ndpi_addrs)):
     if file.endswith(".ndpi"): 
 
-        #file = "03A-C_MaLTT_Ther72h_CD3_MaLTT_Ther72h_CD3_03A-C - 2015-07-04 21.02.18.ndpi"
+        #file = "09A-D_MaLTT_Ctrl242h_TK1_MaLTT_Ctrl42h_TK1_09A-D - 2015-07-05 05.07.31.ndpi"
+        #file = "07A-D_MaLTT_Ctrl24h_B220_MaLTT_Ctrl42h_B220_07A-D - 2015-07-08 17.00.07.ndpi"
         file_name = file.replace('.ndpi','')
         
         ##open the .ndpi file and find the level_count  and level dimmensions      
@@ -65,23 +66,34 @@ for file in sorted(os.listdir(ndpi_addrs)):
             dilated = dilation(opened, selem)
             closed = closing(dilated, selem)
         
-            edges = cv2.Canny(closed,50,150,apertureSize = 3)
-            lines = cv2.HoughLines(edges,1,np.pi/180, 200)
-            line_num = np.shape(lines)
-                       
-            #try:
-                #lines
-            #except NameError:
-                #var_exists = False
-            #else:
-                #var_exists = True  
+            #edges = cv2.Canny(closed,50,150,apertureSize = 3)
+            #lines = cv2.HoughLines(edges,1,np.pi/180, 200)
+            #line_num = np.shape(lines)   
+             
                 
-            if len(line_num) > 0:    
+            #if len(line_num) > 0:
+            tst = []
+            for j in range(0,arr[1]):
+                tst.append(0)
+                for i in range(0,arr[0]):
+                    tst[j] = tst[j] + gray_scale[i][j]
+                    
+            sz = int(0.1 * arr[1])
+            tmp = 0;
+            rec_ = 0
+            for j in range(0,arr[1]-sz):
+                for i in range(0,sz+1):
+                    tmp = tmp + tst[j+i]
+                    
+                if tmp == 0:
+                    rec_ = 1
+                    break
+                
+            if rec_ == 1:    
                 for i in range(0,levelDimension[img_th][1]):
                     for j in range(0,levelDimension[img_th][0]):
                         if org_gray_scale[i][j] >= iso_thresh:
-                            org_gray_scale[i][j]  = iso_thresh-1              
-                            
+                            org_gray_scale[i][j]  = iso_thresh-1 
             else:
                 correct_thresh = True
                 
@@ -170,7 +182,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
         num = -1
         cnt_pre = [0, 0, 0]
         cnt = 0
-
+    
         for j in range(0, sz[1]):
             tmp = cnt_pre
             cnt_pre = [tmp[1], tmp[2], cnt]
@@ -179,7 +191,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
                 if gray_scale[i][j] == 255:
                     cnt = 1
                     break
-                
+    
             if cnt == 1:
                 if cnt_pre[0] + cnt_pre[1] + cnt_pre[2] == 0:
                     num = num+1
@@ -187,26 +199,26 @@ for file in sorted(os.listdir(ndpi_addrs)):
                 else:
                     nc = objct.pop()
                     objct.append([nc[0], j])
-
+    
             else:
                 if cnt_pre[0] == 1 and cnt_pre[1]  == 0 and cnt_pre[2] == 0:
                     if (objct[num][1] - objct[num][0]) < (0.05 * sz[1]):
                         for k in range(objct[num][0], objct[num][1]+1):
                             for t in range(0,sz[0]):
                                 gray_scale[t][k] = 0 
-
+    
                         del objct[num]
                         num = num - 1
-                      
-                        
+    
+    
         ##trace the image to find the object zones (sweep the rows)
         objct_list = list()     
         objct_num = -1
-        
+    
         for n in range(0,num+1):            
             cnt_pre = [0, 0, 0]
             cnt = 0
-                   
+    
             for i in range(0, sz[0]):
                 tmp = cnt_pre
                 cnt_pre = [tmp[1], tmp[2], cnt]
@@ -215,26 +227,26 @@ for file in sorted(os.listdir(ndpi_addrs)):
                     if gray_scale[i][j] == 255:
                         cnt = 1
                         break
-                    
+    
                 if cnt == 1:
                     if cnt_pre[0] + cnt_pre[1] + cnt_pre[2] == 0:                        
                         objct_list.append([i, i, objct[n][0], objct[n][1]]) 
                         objct_num = objct_num+1
-                        
+    
                     else:
                         nc = objct_list.pop()
                         objct_list.append([nc[0], i, nc[2], nc[3]])
-                                          
+    
                 else:
                     if cnt_pre[0] == 1 and cnt_pre[1] == 0 and cnt_pre[2] == 0:                           
                         if (objct_list[objct_num][1] - objct_list[objct_num][0]) < (0.05 * sz[0]):
                             for k in range(objct[n][0], objct[n][1]+1):
                                 for t in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
                                     gray_scale[t][k] = 0 
-                                
+    
                             del objct_list[objct_num]
                             objct_num = objct_num-1
-                            
+    
                         else:
                             find = False
                             for mi in range(objct_list[objct_num][2], objct_list[objct_num][3]+1):
@@ -244,10 +256,10 @@ for file in sorted(os.listdir(ndpi_addrs)):
                                         strt = mi
                                         find = True
                                         break
-                                        
+    
                                 if find == True:
                                     break
-                                
+    
                             find = False    
                             for mi in range(objct_list[objct_num][3], strt-1, -1):
                                 nd = objct_list[objct_num][3]                                
@@ -256,23 +268,24 @@ for file in sorted(os.listdir(ndpi_addrs)):
                                         nd = mi
                                         find = True
                                         break
-                                
+    
                                 if find == True:
                                     break                                    
-                                        
+    
                             if (nd - strt) < (0.05 * sz[1]):
                                 for t in range(objct_list[objct_num][0], objct_list[objct_num][1]+1):
                                     for k in range(objct_list[objct_num][2], objct_list[objct_num][3]+1):
                                         gray_scale[t][k] = 0                                         
-                                        
+    
                                 del objct_list[objct_num]
                                 objct_num = objct_num-1  
-
+    
         objct_num = objct_num+1
         list_size = len(objct_list)
         if list_size < 1:
             #print file            
             continue
+
          
         
         
@@ -294,12 +307,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
                     else:
                         gray_scale[i][j] = 255                            
                         
-        cv2.imwrite(result_addrs + file_name + '_(5)convex_hull.jpg', gray_scale) 
-             
-        #for i in range (0, levelDimension[img_th][1]):
-            #for j in range (0, levelDimension[img_th][0]):
-                
-        
+        cv2.imwrite(result_addrs + file_name + '_(5)convex_hull.jpg', gray_scale)         
         print file_name, np.shape(gray_scale),objct_num
         
             
@@ -350,7 +358,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
         ####define a patch size
         ##inpt = raw_input("Please insert the desired patch size:")
         #if max_pos_patch_sz > 24:
-            #mini = 25
+            #mini = 10
         #else:
             #mini = 2
         #inpt = str(random.randint(mini, max_pos_patch_sz))
@@ -439,14 +447,14 @@ for file in sorted(os.listdir(ndpi_addrs)):
         #patch_list = list()
         #for n in range(0, objct_num): 
             #p = 0
-            
-            #for i in range(0,int((objct_list[n][1] - objct_list[n][0]) * resize_ - ver_ovlap) / (patch_size - ver_ovlap)):
-                #for j in range(0,int((objct_list[n][3] - objct_list[n][2]) * resize_ - hor_ovlap) / (patch_size - hor_ovlap)):
+              
+            #for i in range(0,int(((objct_list[n][1] - objct_list[n][0]) * resize_ - ver_ovlap) / (patch_size - ver_ovlap)):
+                #for j in range(0,int(((objct_list[n][3] - objct_list[n][2]) * resize_ - hor_ovlap) / (patch_size - hor_ovlap))):
                     #w = 0
                     #tmp = [[-1 for x in range(0,patch_size)] for y in range(0,patch_size)]
                     
                     #for ip in range(i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_), i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_) + patch_size):
-                        #for jp in range(j * (patch_size - hor_ovlap) + objct_list[n][0], j * (patch_size - hor_ovlap) + objct_list[n][0] + patch_size):
+                        #for jp in range(j * (patch_size - hor_ovlap) + objct_list[n][2], j * (patch_size - hor_ovlap) + objct_list[n][2] + patch_size):
                             #tmp[ip % patch_size][jp % patch_size] = resized_matrix[ip][jp]
                             #if resized_matrix[ip][jp] == 0:
                                 #w = w+1
