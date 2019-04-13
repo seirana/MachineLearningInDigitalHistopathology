@@ -9,49 +9,26 @@ from PIL import Image
 from skimage.filters import threshold_isodata
 from skimage.morphology import opening, closing, disk, dilation, convex_hull_image
 import matplotlib.patches as patches
-import slide_properties
+import Image_Properties as IMG
+import math
 
+img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
+result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"    
+IMG.slide_properties(img_addrs, result_addrs)
+seirana = 0
 
-ndpi_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
-result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"
 img_info = list()
 img_info.append(["FileName", "levelCount", "levelDimension", "objct_num", "objct_list", "resize", "vertical overlap", "horisental overlap"])
-img_pro = list()
-img_pro.append(["File name", "Level count", "Level dimension", "Quickhash", "Objective power", "Vendor", "Bounds color", "comment", "MAPP X", "MPP Y", "Bounds X", "Bounds Y", "Bounds width", "Bounds height"])
 
-for file in sorted(os.listdir(ndpi_addrs)):
-    if file.endswith(".ndpi"): 
-        file_name = file.replace('.ndpi','')
-        
-        ##open the .ndpi file and find the level_count  and level dimmensions and other attributes of the image (if known)     
-        def slide_properties(slide_name):
-            
-            slide = openslide.OpenSlide(ndpi_addrs + file)
-            levelCount = slide.level_count    
-            levelDimension = slide.level_dimensions
-            w0 = slide.properties.get(openslide.PROPERTY_NAME_QUICKHASH1)
-            w1 = slide.properties.get(openslide.PROPERTY_NAME_OBJECTIVE_POWER)
-            w2 = slide.properties.get(openslide.PROPERTY_NAME_BACKGROUND_COLOR)
-            w3 = slide.properties.get(openslide.PROPERTY_NAME_VENDOR)
-            w4 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_WIDTH)
-            w5 = slide.properties.get(openslide.PROPERTY_NAME_COMMENT)
-            w6 = slide.properties.get(openslide.PROPERTY_NAME_MPP_X)
-            w7 = slide.properties.get(openslide.PROPERTY_NAME_MPP_Y)
-            w8 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_X)        
-            w9 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_Y)        
-            w10 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_WIDTH)        
-            w11 = slide.properties.get(openslide.PROPERTY_NAME_BOUNDS_HEIGHT)
-            
-            img_pro.append([file_name, levelCount, levelDimension, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11])
-            return
+for file in sorted(os.listdir(img_addrs)):
+    if file.endswith(".ndpi"):       
+    
+        file_name = file.replace('.ndpi','') 
+        slide = openslide.OpenSlide(img_addrs + file)
+        levelCount = slide.level_count    
+        levelDimension = slide.level_dimensions          
         
         
-        # should go to the end of the file 
-        np.savetxt("/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/AAA.csv", img_pro, fmt='%s')   
-
-    
-    
-    
         ##read the image in desired level, convert it to gray scale and save it as a .jpeg file 
         for i in range(0,levelCount):
             if levelDimension[levelCount-i-1][0] > 2000 and levelDimension[levelCount-i-1][1] > 1000:
@@ -66,8 +43,7 @@ for file in sorted(os.listdir(ndpi_addrs)):
         cv2.imwrite(result_addrs + file_name + '_(1)gray_scale.jpg', gray_scale)
         org_gray_scale = np.copy(gray_scale)
        
-     
-        
+
         ##find and apply isodata threshold on the image 
         correct_thresh = False        
         while correct_thresh == False:
@@ -364,13 +340,12 @@ for file in sorted(os.listdir(ndpi_addrs)):
         if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
             max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)
         for i in range(1, list_size):
-            if max_pos_patch_sz > resize_ * (objct_list[0][1] - objct_list[0][0]+1):
-                max_pos_patch_sz = resize_ * (objct_list[0][1] - objct_list[0][0]+1)
-            if max_pos_patch_sz > resize_ * (objct_list[0][3] - objct_list[0][2]+1):
-                max_pos_patch_sz = resize_ * (objct_list[0][3] - objct_list[0][2]+1)            
+            if max_pos_patch_sz > resize_ * (objct_list[i][1] - objct_list[i][0]+1):
+                max_pos_patch_sz = resize_ * (objct_list[i][1] - objct_list[i][0]+1)
+            if max_pos_patch_sz > resize_ * (objct_list[i][3] - objct_list[i][2]+1):
+                max_pos_patch_sz = resize_ * (objct_list[i][3] - objct_list[i][2]+1)            
             
                
-        
         ###define a patch size
         if max_pos_patch_sz > 24:
             mini = 10
@@ -461,36 +436,62 @@ for file in sorted(os.listdir(ndpi_addrs)):
            
         if ver_ovlap == patch_size:
             ver_ovlap = ver_ovlap-1
-          
-        
+        #  
+        #import psutil
         
         ##trace objects of the image based on the patches        
         per_ = 80 / 100 ##minimum coverage of the convex hull by the patches
         patch_list = list()
+        patch_info = list()
+        
+        cntr = 0
         for n in range(0, objct_num): 
             
             ##resize the object from img_th to desired level
-            tmp_mat = np.zeros(objct_list[n][1]- objct_list[n][0], objct_list[n][3]- objct_list[n][2])
-            for i in range(0, objct_list[n][1]- objct_list[n][0]):
-                for j in range(0, objct_list[n][3]- objct_list[n][2]):
+            tmp_mat = np.zeros(shape=(objct_list[n][1]- objct_list[n][0]+1, objct_list[n][3]- objct_list[n][2]+1))
+            for i in range(0, objct_list[n][1]- objct_list[n][0]+1):
+                for j in range(0, objct_list[n][3]- objct_list[n][2]+1):
                     tmp_mat[i][j] = gray_scale[objct_list[n][0]+i][objct_list[n][2]+j]
             
             resized_matrix = np.repeat(np.repeat(tmp_mat, resize_, axis=0), resize_, axis=1) 
-            
-            
+            del(tmp_mat)
+
+
+            print "I am here!", n, "of", objct_num
             ##read the object in the max. magnification level
-            tmp_img = slide.read_region((objct_list[n][0]*resize_,objct_list[n][2]*resize_), 0, ((objct_list[n][1]- objct_list[n][0])*resize_, (objct_list[n][3]- objct_list[n][2])*resize_))
-            max_mag_lev_obj = np.array(tmp_img)
-        
+            heigth_ = (objct_list[n][1]- objct_list[n][0]+1)*resize_ 
+            width_ = (objct_list[n][3]- objct_list[n][2]+1)*resize_ 
+            leftup_i  = objct_list[n][0]*resize_
+            leftup_j  = objct_list[n][2]*resize_
+            
+            if heigth_  * width_  < 2**28:
+                tmp_img = slide.read_region((leftup_j, leftup_i), 0, (width_, heigth_))
+                max_mag_lev_obj = np.array(tmp_img)
+            else:
+                x_ = int(math.ceil(heigth_*width_/2**28))  
+                new_heigth_ = int(math.ceil(heigth_/x_))
+                tmp_img = slide.read_region((leftup_j, leftup_i), 0, (width_, new_heigth_))
+                max_mag_lev_obj = np.array(tmp_img) 
+                
+                if x_ > 2:
+                    for i in range(1,x_-1):
+                        tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*i), 0, (width_, new_heigth_))
+                        t_mat= np.array(tmp_img)
+                        np.concatenate(max_mag_lev_obj, t_mat)  
+           
+                tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*(x_-1)), 0, (width_, heigth_-new_heigth_*(x_-1)))
+                t_mat= np.array(tmp_img)
+                max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)  
                         
-            for i in range(0,int(((objct_list[n][1] - objct_list[n][0]) * resize_ - ver_ovlap) / (patch_size - ver_ovlap))):
-                for j in range(0,int(((objct_list[n][3] - objct_list[n][2]) * resize_ - hor_ovlap) / (patch_size - hor_ovlap))):
+            for i in range(0,int((heigth_ - ver_ovlap) / (patch_size - ver_ovlap))):
+                for j in range(0,int((width_ - hor_ovlap) / (patch_size - hor_ovlap))):
+                    
                     w = 0
                     tmp = [[-1 for x in range(0,patch_size)] for y in range(0,patch_size)]
                     non_cov_patch = False
                     
-                    for ip in range(i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_), i * (patch_size - ver_ovlap) + (objct_list[n][0] * resize_) + patch_size):
-                        for jp in range(j * (patch_size - hor_ovlap) + objct_list[n][2], j * (patch_size - hor_ovlap) + objct_list[n][2] + patch_size):
+                    for ip in range((patch_size - ver_ovlap)*i, (patch_size - ver_ovlap)*i+patch_size):
+                        for jp in range((patch_size - hor_ovlap)*j, (patch_size - hor_ovlap)*j+patch_size):
                             tmp[ip % patch_size][jp % patch_size] = max_mag_lev_obj[ip][jp]
                             if resized_matrix[ip][jp] == 0:
                                 w = w+1                                 
@@ -503,64 +504,80 @@ for file in sorted(os.listdir(ndpi_addrs)):
                             break
 
                     if non_cov_patch == False and w >= per_ * patch_size * patch_size:
-                        patch_list.append([n, i, j, tmp])
-                        
+                        cntr = cntr+1;
+                        if n == 0 and cntr == 1:
+                            patch_list = tmp
+                            file_Name = result_addrs + file_name + "_patch_list"
+                            np.save(file_Name, patch_list)                        
+                            #patch_list.close()
+                        else:
+                            patch_list = np.vstack([patch_list,tmp])                        
+                            file_Name = result_addrs + file_name + "_patch_list"
+                            np.save(file_Name, patch_list)                        
+                            #patch_list.close()
+                            
+                        patch_info.append([n, i ,j])
 
+                        #pid = os.getpid()
+                        #py = psutil.Process(pid)
+                        #memoryUse = py.memory_info()[0]/2.**30  # memory use in GB...I think
+                        #print('memory use:', memoryUse)
+                        #print i , j
                     
             
         ##save the patch list to a file
-        file_Name = result_addrs + file_name + "_patch_list"
-        fileObject = open(file_Name,'wb') 
-        pickle.dump(patch_list,fileObject)   
-        fileObject.close()
-    
+        file_Name = result_addrs + file_name + "_patch_info"
+        np.save(file_Name, patch_info) 
+        patch_list = np.load(file_Name + '.npy')
+        print np.shape(patchlist), np.shape(patch_info)
+        
         ##save image information to the file
-        img_info.append([file_name, levelCount, levelDimension, levelDimension[img_th], objct_num, objct_list, resize_, patch_size, ver_ovlap, hor_ovlap])
+        img_info.append([file_name, levelCount, levelDimension, img_th, objct_num, objct_list, resize_, patch_size, ver_ovlap, hor_ovlap])
         plt.close('all')
+        seirana = seirana+1
+        print seirana, file_name
         
 
         
 ##save the information for the the images in a file
 file_Name = result_addrs + "Images_INFO"
-fileObject = open(file_Name,'wb') 
-pickle.dump(img_info,fileObject)   
-fileObject.close()
+np.save(file_Name, fileObject)
 
-class random_rot_mirr:
 
-    ##rotate a patch randomly
-    i = random.randint(0, 7)
+#class random_rot_mirr:
+
+    ###rotate a patch randomly
+    #i = random.randint(0, 7)
     
-    if i == 0:
-        rand_rot_mirr = np.rot90(patch_, k=0)
-    if i == 1:
-        rand_rot_mirr = np.rot90(patch_, k=1)
-    if i == 2:
-        rand_rot_mirr = np.rot90(patch_, k=2)
-    if i == 3:
-        rand_rot_mirr = np.rot90(patch_, k=3)
-    if i == 4:
-        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=0))
-    if i == 5:
-        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=1))
-    if i == 6:
-        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=2))
-    if i == 7:
-        rand_rot_mirr = np.fliplr(np.rot90(patch_, k=3))
+    #if i == 0:
+        #rand_rot_mirr = np.rot90(patch_, k=0)
+    #if i == 1:
+        #rand_rot_mirr = np.rot90(patch_, k=1)
+    #if i == 2:
+        #rand_rot_mirr = np.rot90(patch_, k=2)
+    #if i == 3:
+        #rand_rot_mirr = np.rot90(patch_, k=3)
+    #if i == 4:
+        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=0))
+    #if i == 5:
+        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=1))
+    #if i == 6:
+        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=2))
+    #if i == 7:
+        #rand_rot_mirr = np.fliplr(np.rot90(patch_, k=3))
         
-    return rant_rot_mirr
+    #return rand_rot_mirr
 
 
 
-# in progress
-class get_patch:    
+## in progress
+#class get_patch:    
     
-    ##showing the position of the patch in the jpeg image of the .ndpi file in 
-    ax.imshow(image)
-    # Create a Rectangle patch
-    rect = patches.Rectangle((patch_list[0]/resize_,patch_list[1]/resize_), patch_size/resize_, patch_size/resize_, linewidth=1, edgecolor='r', facecolor='none')
-    # Add the patch to the Axes
-    ax.add_patch(rect)
-    #plt.show()
-    return 
-    
+    ###showing the position of the patch in the jpeg image of the .ndpi file in 
+    #ax.imshow(image)
+    ## Create a Rectangle patch
+    #rect = patches.Rectangle((patch_list[0]/resize_,patch_list[1]/resize_), patch_size/resize_, patch_size/resize_, linewidth=1, edgecolor='r', facecolor='none')
+    ## Add the patch to the Axes
+    #ax.add_patch(rect)
+    ##plt.show()
+    #return 
