@@ -20,7 +20,7 @@ def patches_for_batches(patch_num, information, result_addrs, level_from, level_
         patch_object = patch_num/information[i][2] #information[i][2]  = number of objects on the image
         convex_hull = [] #read the convex_hull for the i th image to check the convex hull coverage
         gray_scale_image = [] #read the gray scale image  for the i th image to check the threshhold
-        ojcest = read_openslide(information[i][0],(information[i][2], i, result_addrs, level_from, level_to, patch_size)
+        objct = read_openslide(information[i][0],(information[i][2], i, result_addrs, level_from, level_to, patch_size)
         for j in range(0,information[i][2]):
             extracted_patches = 0
             while extracted_patches < patch_object:
@@ -39,9 +39,11 @@ def patches_for_batches(patch_num, information, result_addrs, level_from, level_
                                 threshhold_check +=1                                
                     
                     if threshhold_check == mini_patch_size^2:
+                        #resize the mini patch to a real patch going from level_from to level_to 
+                        randW_walk = randint(0,patch_size) #produce a random number
+                        randH_walk = randint(0,patch_size) #produce a random number
+                        patch = objct(x+randW_walk:x+randW_walk+patch_size, y+randH_walk:y+randH_walk+patch_size) #return a patch in level_to image 
                         
-                        
-
 ##read the open slide
 def read_openslide(information[i][0],information[i][2], i, result_addrs, level_from, level_to, patch_size):
     tmp_mat = gray_scale[objct_list[n][0]:objct_list[n][1]+1, objct_list[n][2]:objct_list[n][3]+1]
@@ -74,4 +76,5 @@ def read_openslide(information[i][0],information[i][2], i, result_addrs, level_f
         tmp_img = slide.read_region((leftup_j, leftup_i+new_heigth_*(x_-1)), 0, (width_, heigth_-new_heigth_*(x_-1)))
         t_mat= np.array(tmp_img)
         max_mag_lev_obj = np.append(max_mag_lev_obj, t_mat, axis = 0)                        
-    return ojcest                      
+    return objct #it must be a 3D matrix   
+
