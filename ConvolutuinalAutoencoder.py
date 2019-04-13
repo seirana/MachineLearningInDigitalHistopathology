@@ -1,18 +1,13 @@
 """
 To read nifti format images, reconstructing them using convolutional autoencoder
-To observe the effectiveness of the model, we will be testing the model on:
-Unseen images,Noisy images and Use a qualitative metric:
-Peak signal to noise ratio (PSNR) to evaluate the performance of the reconstructed images.
+To observe the effectiveness of the model, we will be testing the model on unseen and noisy images.
 
 First, In the implementation of convolutional autoencoder: we will Fit the preprocessed data into the model,
-visualize the training and validation loss plot, save the trained model and finally predict on the test
+visualize the training and validation loss plot, save the the weights of code layer from trained model and finally predict on the test
 set.
 
 Next, we'll will test the robustness of the pre-trained model by adding noise into the test images and
 see how well the model performs quantitatively.
-
-Finally, you will test the predictions using a quantitative metric peak signal-to-noise ratio (PSNR) and
-measure the performance of the model.
 """
 
 ## Importing the modules
@@ -106,7 +101,7 @@ Max-pooling layer is used after the first and second convolution blocks.
 ##encoder
 ##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
 autoencoder = Sequential()
-autoencoder.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=(x, y, inChannel))) 
+autoencoder.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=(x, y, inChannel)))
 autoencoder.add(BatchNormalization())
 autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
@@ -117,21 +112,27 @@ autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(Conv2D(64, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
+autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
        
 ##The third block will have 128 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(128, (3,3), activation='relu', padding='same')) 
+autoencoder.add(Conv2D(128, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
+autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
         
+##The forth block of encoder will have 32 filters of size 3 x 3
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+autoencoder.add(BatchNormalization())
+autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
+
 ##The final block of encoder will have 32 filters of size 3 x 3
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same')) 
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
-autoencoder.add(BatchNormalization())    
-autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
+autoencoder.add(BatchNormalization(name = "code"))
 
 #decoder
 """
@@ -140,81 +141,63 @@ autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
     Upsampling layer is used after the first and second convolution blocks.
 """
 ##The first block will have 32 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(256, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
 
 ##The second block will have 16 filters of size 3 x 3 followed by a upsampling layer    
-autoencoder.add(Conv2D(64, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64, ((3,3)), activation='relu', padding='same'))
+autoencoder.add(Conv2D(128, ((3,3)), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
     
 ##The second block will have 8 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
     
 ##The third block will have 4 filters of size 3 x 3 followed by another upsampling layer
-autoencoder.add(Conv2D(16, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(16, (3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(32, (3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
+   
+##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
+autoencoder.add(Conv2D(3, (3,3), activation='sigmoid', padding='same', name="lastLayer"))
 
 ##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
 autoencoder.summary()
-    
-##The final layer of encoder will have 1 filter of size 3 x 3 which will reconstruct back the input having a single channel.
-autoencoder.add(Conv2D(3, (3,3), activation='sigmoid', padding='same', name="lastLayer"))
-#last_layer = autoencoder.layers[-1]
+
 #autoencoder = Model(inputs=input_img, outputs=last_layer(input_img))
 autoencoder.compile(loss='mean_squared_error', optimizer = RMSprop())
 
 ##train the model with Keras' fit() function
 autoencoder_train = autoencoder.fit(train_X, train_ground, batch_size=batch_size_,epochs=epochs_,verbose=1,validation_data=(valid_X, valid_ground))
 
-
+#last_layer = autoencoder.layers[-1]
 #model.fit_generator(generator(dataFrameTrain,expectedFrameTrain,batch_size), epochs=3,steps_per_epoch = dataFrame.shape[0]/batch_size, validation_data=generator(dataFrameTest,expectedFrameTest,batch_size*2),validation_steps=dataFrame.shape[0]/batch_size*2)
 #evaluate_generator(self, generator, val_samples, max_q_size=10, nb_worker=1, pickle_safe=False)
 #predict_generator(self, generator, val_samples, max_q_size=10, nb_worker=1, pickle_safe=False)
 
 
 ##the summary function, this will show number of parameters (weights and biases) in each layer and also the total parameters in your model
-
-
-
 #for layer in autoencoder.layers:
-#        print(layer)
+#    if layer.name == "code":
+#        print(layer)        
 #        print(layer.name)
 #        weights = layer.get_weights()
-#        if layer.name == "code":
-#            weights = layer.output()
-#            print(weights)
-           
-        #g=layer.get_config()
-        #print(g)
+#        print (weights)        
+#        g=layer.get_config()
+#        print(g)
 #
 #from keras import backend as K
-#
-#inp = autoencoder.input                                           # input placeholder
-#outputs = [layer.output for layer in autoencoder.layers]          # all layer outputs
-#functors = [K.function([inp, K.learning_phase()], [out]) for out in outputs]
-## Testing
-#test = np.random.random(input_img)[np.newaxis,...]
-#layer_outs = [func([test, 1.]) for func in functors]
-#print (layer_outs)
-
-#from keras import backend as K
-#get_layer = K.function([autoencoder.layers[0].input, K.learning_phase()],autoencoder.layers[17].output)
-#aaa = get_layer([input_img])
-#print(get_layer)
-#get_layer = K.function([autoencoder.input, K.learning_phase()],autoencoder.layers[19].output)
+#get_layer = K.function([autoencoder.layers[0].input, K.learning_phase()],autoencoder.layers['code'].output)
 #print(get_layer)
 
 

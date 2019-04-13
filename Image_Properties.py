@@ -34,5 +34,4 @@ def slide_properties(img_addrs, result_addrs):
             
 
     np.savetxt(result_addrs + "Image_Information.csv", img_pro, fmt='%s') 
-    del(slide)
     return
