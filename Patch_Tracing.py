@@ -1,3 +1,4 @@
+##checkes the accuracy of patch genarator function in the PreProcessing program
 import numpy as np
 
 resize_ = 5
