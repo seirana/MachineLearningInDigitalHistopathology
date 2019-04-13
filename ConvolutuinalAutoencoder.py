@@ -34,6 +34,7 @@ load the images on the memory
 """
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
 file = "01A-D_MaLTT_Ther72h_Casp3_MaLTT_Ther72h_Casp3_01A-D - 2015-07-04 10.27.12_patch_list0.npy"
+
 file_name = img_addrs + file        
 patch_list = np.load(file_name)
 
@@ -92,7 +93,7 @@ plt.savefig(img_addrs + 'tensorflow_images_(01_02)Train_Validation.jpg')
 
 ##The Convolutional Autoencoder!
 batch_size = 128
-epochs = 2#300
+epochs = 100#300
 inChannel = 3
 x, y = shp[1], shp[2]
 input_img = Input(shape = (x, y, inChannel))
