@@ -16,21 +16,22 @@ for file in sorted(os.listdir(img_addrs)):
     if file.endswith(".ndpi"):       
     
         file_name = file.replace('.ndpi','')
+        print file_name
         slide = openslide.OpenSlide(img_addrs + file)
         levelCount = slide.level_count    
-        levelDimension = slide.level_dimensions          
+        levelDimension = slide.level_dimensions
         
-        ##read the image in desired level, convert it to gray scale and save it as a .jpeg file 
+        ##read the image in desired level, convert it to gray scale and save it as a .jpeg file
         for i in range(0,levelCount):
             if levelDimension[levelCount-i-1][0] > 2000 and levelDimension[levelCount-i-1][1] > 1000:
-                x = levelDimension[levelCount-i-1] 
+                x = levelDimension[levelCount-i-1]
                 break
             
         img_th = levelCount-i-1
-        img = slide.get_thumbnail(levelDimension[img_th])        
+        img = slide.get_thumbnail(levelDimension[img_th])
         image = np.array(img)
         gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        iso_thresh = threshold_isodata(gray_scale)   
+        iso_thresh = threshold_isodata(gray_scale)
         arr = np.shape(gray_scale)
         pixel = np.zeros(shape=(1,256))
         for i in range(0,arr[0]):
@@ -40,6 +41,14 @@ for file in sorted(os.listdir(img_addrs)):
         for i in range(0,256):
             pixel[0][i] = pixel[0][i]/arr[0]*arr[1]
             
-        img_info.append([file, pixel, iso_thresh, pixel[0][iso_thresh]])
+        mn = 0
+        for i in range(0,iso_thresh):
+            mn += pixel[0][i]
+        mx = 0
+        for i in range(iso_thresh,255):
+            mx += pixel[0][i]    
+            
+        sm = mn+mx
+        img_info.append([file, iso_thresh, mn/sm, mx/sm], pixel) 
         
 np.save(result_addrs + "pixel", np.asarray(img_info,dtype= object))

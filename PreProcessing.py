@@ -10,22 +10,20 @@ from skimage.morphology import opening, closing, disk, dilation, convex_hull_ima
 import matplotlib.patches as patches
 import math 
 import Image_Properties as IMG ##mine
-#import Random_Rotation_Mirroring as RRM ##mine
-
 
 img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/"
 result_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Results/"
 
-IMG.slide_properties(img_addrs, result_addrs)
-
+#IMG.slide_properties(img_addrs, result_addrs)
+information = list()
 pixel_info = list()
 for file in sorted(os.listdir(img_addrs)):
-    if file.endswith(".ndpi"):   
+    if file.endswith(".ndpi"):        
         patch_list = list()
-        patch_info = list()
+        patch_info = list()   
         info_gathering = list()
         
-        file_name = file.replace('.ndpi','')
+        file_name = file.replace('.ndpi','')        
         info_gathering.append(file_name)
         print file_name
         
@@ -66,8 +64,15 @@ for file in sorted(os.listdir(img_addrs)):
             for i in range(0,256):
                 pixel[0][i] = pixel[0][i]/arr[0]*arr[1]
         
-            pixel_info.append([file, pixel, iso_thresh, pixel[0][iso_thresh]]) 
-            
+            mn = 0
+            for i in range(0,iso_thresh):
+                mn += pixel[0][i]
+            mx = 0
+            for i in range(iso_thresh,255):
+                mx += pixel[0][i]    
+                
+            sm = mn+mx
+            pixel_info.append([file, iso_thresh, mn/sm, mx/sm])
             
             for i in range(0,arr[0]):
                 for j in range(0,arr[1]):
@@ -461,6 +466,8 @@ for file in sorted(os.listdir(img_addrs)):
         ##trace objects of the image based on the patches        
         per_ = 80 / 100 * 255 ##minimum coverage of the convex hull by the patches, 255 is for white pixles
         patch_list = list()
+        ls = 0
+        sz_list = 0
         patch_list = list()
         
         cntr = 0
@@ -507,25 +514,34 @@ for file in sorted(os.listdir(img_addrs)):
                     if summation <= per_ * (patch_size ** 2):
                         break
                     else:
+                        if len(patch_list) > ((5*(10**8))/(patch_size**2)): #the size of the matrix should be less than 4GB
+                            file_Name = result_addrs + file_name + "_patch_list" + str(ls)
+                            np.save(file_Name, np.asarray(patch_list,dtype= object))
+                            ls += 1
+                            sz_list += len(patch_list)
+                            patch_list = list()
+                        
                         patch_list.append(tmp)
-                        patch_info.append([np.asarray(info_gathering, dtype=object), n, objct_list[n][0]*resize_+(patch_size - ver_ovlap)*i, objct_list[n][2]*resize_+(patch_size - hor_ovlap)*j])
+                        patch_info.append([n, objct_list[n][0]*resize_+(patch_size - ver_ovlap)*i, objct_list[n][2]*resize_+(patch_size - hor_ovlap)*j])
                         
         ##save the patch list and info to the files
-        file_Name = result_addrs + file_name + "_patch_list"
+        file_Name = result_addrs + file_name + "_patch_list" + str(ls)     
         np.save(file_Name, np.asarray(patch_list,dtype= object))
         file_Name = result_addrs + file_name + "_patch_info"
         np.save(file_Name, np.asarray(patch_info,dtype= object))
+        sz_list += len(patch_list)
+        info_gathering.append(sz_list)
+        information.append(np.asarray(info_gathering,dtype= object))
+        del(info_gathering)
         del(tmp)
         del(patch_list)
         del(patch_info)
-        del(info_gathering)
         del(resized_matrix)
         del(max_mag_lev_obj)
         plt.close('all')
-
     else:
         continue   
     
+file_Name = result_addrs + "_info_gathering"
+np.save(file_Name,np.asarray(information,dtype= object))     
 np.save(result_addrs + "GrayScale_pixels", np.asarray(pixel_info,dtype= object))
-
-#patch_ = RRM.random_rot_mirr(patch_)
