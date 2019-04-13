@@ -40,6 +40,8 @@ for file in sorted(os.listdir(img_addrs)):
       
         for i in range(0,256):
             pixel[0][i] = pixel[0][i]/arr[0]*arr[1]
+         
+        back_ground = max(pixel[0,:])
             
         mn = 0
         for i in range(0,iso_thresh):
@@ -49,6 +51,8 @@ for file in sorted(os.listdir(img_addrs)):
             mx += pixel[0][i]    
             
         sm = mn+mx
-        img_info.append([file, iso_thresh, mn/sm, mx/sm], pixel) 
+        img_info.append([file, iso_thresh, mn/sm, mx/sm, back_ground]) 
         
-np.save(result_addrs + "pixel", np.asarray(img_info,dtype= object))
+np.save(result_addrs + "pixel(1)", np.asarray(img_info,dtype= object))
+a = np.load(result_addrs + "pixel(1).npy")
+np.savetxt(result_addrs+'pixel(1).csv', a, delimiter=',', fmt='%s')

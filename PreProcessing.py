@@ -22,8 +22,7 @@ for file in sorted(os.listdir(img_addrs)):
         patch_list = list()
         patch_info = list()   
         info_gathering = list()
-        
-        file_name = file.replace('.ndpi','')        
+        file_name = file.replace('.ndpi','') 
         info_gathering.append(file_name)
         print file_name
         
@@ -48,11 +47,37 @@ for file in sorted(os.listdir(img_addrs)):
         cv2.imwrite(result_addrs + file_name + '_(1)gray_scale.jpg', gray_scale)
         org_gray_scale = np.copy(gray_scale)
        
+        ### create a CLAHE object (Arguments are optional).
+        #clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        #cl1 = clahe.apply(gray_scale)   
+        #gray_scale = np.copy(cl1) 
 
+        arr = np.shape(gray_scale)
+        pixel = np.zeros(shape=(1,256))        
+        for i in range(0,arr[0]):
+            for j in range(0,arr[1]):
+                pixel[0][gray_scale[i][j]] += 1
+    
+        back_ground = max(pixel[0,:])  
+        for i in range(0,256):
+            if pixel[0][i] == back_ground:
+                bg_pixel = i
+                break
+            
+        print bg_pixel
+        for i in range(0,arr[0]):
+            for j in range(0,arr[1]):
+                if gray_scale[i][j] > 230:
+                    gray_scale[i][j] = bg_pixel #to change too much light pixels to the color of background
+                if gray_scale[i][j] < 50:
+                    gray_scale[i][j] = bg_pixel #to change too much dark pixels to the color of background                     
+
+        cv2.imwrite(result_addrs + file_name + '_(11)gray_scale.jpg', gray_scale)
+                    
         ##find and apply isodata threshold on the image 
         correct_thresh = False        
         while correct_thresh == False:
-            gray_scale = np.copy(org_gray_scale)             
+            #gray_scale = np.copy(org_gray_scale)             
             iso_thresh = threshold_isodata(gray_scale)            
             arr = np.shape(gray_scale) 
             
@@ -64,6 +89,8 @@ for file in sorted(os.listdir(img_addrs)):
             for i in range(0,256):
                 pixel[0][i] = pixel[0][i]/arr[0]*arr[1]
         
+            back_ground = max(pixel[0,:])
+            
             mn = 0
             for i in range(0,iso_thresh):
                 mn += pixel[0][i]
@@ -72,7 +99,7 @@ for file in sorted(os.listdir(img_addrs)):
                 mx += pixel[0][i]    
                 
             sm = mn+mx
-            pixel_info.append([file, iso_thresh, mn/sm, mx/sm])
+            pixel_info.append([file, iso_thresh, mn/sm, mx/sm, back_ground])
             
             for i in range(0,arr[0]):
                 for j in range(0,arr[1]):
@@ -80,7 +107,8 @@ for file in sorted(os.listdir(img_addrs)):
                         gray_scale[i][j] = 255
                     else: 
                         gray_scale[i][j] = 0 
-            
+            print iso_thresh
+            cv2.imwrite(result_addrs + file_name + '_(12)gray_scale.jpg', gray_scale)
             
             ##apply binary morphological filters on the image(opening, dilation, closing) and save it
             selem = disk(6) 
