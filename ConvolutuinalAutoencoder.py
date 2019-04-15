@@ -1,19 +1,17 @@
 # importing the modules
 import os
 import numpy as np
-
-# import tensorflow as tf
-# import keras
+import keras
 from matplotlib import pyplot as plt
 from keras import Sequential
-# from keras import backend as K
 from keras.layers import Input, Conv2D, MaxPooling2D, UpSampling2D
 from keras.layers.normalization import BatchNormalization
-from keras.optimizers import RMSprop
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import load_model
 from train_test_random_list import make_rand_list
 from fit_generator import patch_generator
+# import tensorflow as tf
+# from keras import backend as K
 
 os.system('clear')
 # K.tensorflow_backend._get_available_gpus()
@@ -117,10 +115,9 @@ epochs_ = 10000  # number of epochs, we will have
 train_per = 0.8  # the percentage of data, which will be used for training
 validation_per = round(1 - train_per, 1)
 
-batch_sz = 100  # the batch siz,we we will take
-all_patchs = 100000  # number of all patches we want to extract
-steps_per_epoch_ = 1000  # int(batch_sz_train/batch_sz_train)  # TotalTrainingSamples / TrainingBatchSize
-validation_steps_ = 1000  # int(batch_sz_test/batch_sz_test)  # TotalvalidationSamples / ValidationBatchSize
+batch_sz = 125  # the batch siz,we we will take
+steps_per_epoch_ = 10000000  # int(batch_sz_train/batch_sz_train)  # TotalTrainingSamples / TrainingBatchSize
+validation_steps_ = 10000000  # int(batch_sz_test/batch_sz_test)  # TotalvalidationSamples / ValidationBatchSize
 resolution = 0
 
 '''
@@ -132,8 +129,8 @@ also the total parameters in your model
  
  '''
 autoencoder.summary()
-# keras.utils.multi_gpu_model(autoencoder, gpus=2, cpu_merge=True, cpu_relocation=False)
-autoencoder.compile(loss='mean_squared_error', optimizer=RMSprop())
+keras.utils.multi_gpu_model(autoencoder, gpus=2, cpu_merge=True, cpu_relocation=False)
+autoencoder.compile(loss='mean_squared_logarithmic_error', optimizer='sgd')
 
 make_rand_list(addrs, len(img_lst), train_per)
 
