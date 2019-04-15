@@ -35,7 +35,7 @@ import math
 """
 load the images on the memory
 """
-img_addrs = "/media/seirana/16E960B45FBD928C/2019-04-06/Autoencoder/11/runs/Test/"
+img_addrs = "/home/seirana/Autoencoder/10/runs/Test/"
 file = "01A-D_MaLTT_Ther72h_Casp3_MaLTT_Ther72h_Casp3_01A-D - 2015-07-04 10.27.12_patch_list0.npy"
 
 file_name = img_addrs + file        
@@ -95,7 +95,7 @@ plt.imshow(curr_img, cmap = 'gray')
 plt.savefig(img_addrs + 'tensorflow_images_(01_02)Train_Validation.jpg')
 
 ##The Convolutional Autoencoder!
-batch_size_ = 100
+batch_size_ = 256
 epochs_ = 300
 inChannel = 3
 x, y = shp[1], shp[2]
@@ -117,16 +117,16 @@ autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2,2))) 
 
 ##The first convolution block will have 32 filters of size 3 x 3, followed by a downsampling (max-pooling) layer,
-autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same')) 
+autoencoder.add(Conv2D(48,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(48,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2)))
     
 ##The second block will have 64 filters of size 3 x 3, followed by another downsampling layer
-autoencoder.add(Conv2D(128,(3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(128,(3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(64,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(MaxPooling2D(pool_size=(2, 2))) 
        
@@ -143,16 +143,16 @@ autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
     Upsampling layer is used after the first and second convolution blocks.
 """
 ##The first block will have 32 filters of size 3 x 3 followed by a upsampling layer
-autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(32,(3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
 
 ##The second block will have 16 filters of size 3 x 3 followed by a upsampling layer    
-autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(12,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
-autoencoder.add(Conv2D(16,(3,3), activation='relu', padding='same'))
+autoencoder.add(Conv2D(12,(3,3), activation='relu', padding='same'))
 autoencoder.add(BatchNormalization())
 autoencoder.add(UpSampling2D((2,2)))
     
