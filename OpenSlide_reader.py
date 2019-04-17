@@ -5,7 +5,7 @@ import numpy as np
 
 
 # read the open slide
-def read_openslide(addrs, slide_ID, leftup_h, leftup_w, patch_size, tt):
+def read_openslide(addrs, slide_th, slide_ID, leftup_h, leftup_w, patch_size, tt):
     slide = openslide.OpenSlide(addrs + slide_ID+'.ndpi')
 
     # read the object in the max. magnification level
@@ -16,6 +16,6 @@ def read_openslide(addrs, slide_ID, leftup_h, leftup_w, patch_size, tt):
     img = np.array(img)
     patch = img[:, :, 0:3]  # remove the alpha channel
     # mirror and rotate the patch randomly
-    patch = random_rot_mirr(patch, addrs, slide_ID, leftup_w, leftup_h, tt)
+    patch = random_rot_mirr(patch, addrs, leftup_w, leftup_h, tt, slide_th)
     
     return patch  # it must be a 3D matrix

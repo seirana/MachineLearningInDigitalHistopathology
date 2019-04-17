@@ -132,7 +132,8 @@ autoencoder.summary()
 keras.utils.multi_gpu_model(autoencoder, gpus=2, cpu_merge=True, cpu_relocation=False)
 autoencoder.compile(loss='mean_squared_logarithmic_error', optimizer='sgd')
 
-make_rand_list(addrs, len(img_lst), train_per)
+numof_train_images = make_rand_list(addrs, len(img_lst), train_per)
+numof_test_images = len(img_lst) - numof_train_images
 
 early_stop = EarlyStopping(monitor='val_loss',
                            min_delta=0.1,
@@ -146,7 +147,8 @@ modelcheckpoint = ModelCheckpoint(result_addrs+'best_model.h5', monitor='val_los
 
 autoencoder_train = autoencoder.fit_generator(patch_generator(addrs,
                                                               patch_size,
-                                                              0.8*batch_sz,
+                                                              train_per*batch_sz,
+                                                              numof_train_images,
                                                               resolution,
                                                               'train'),
                                               steps_per_epoch=steps_per_epoch_,
@@ -156,6 +158,7 @@ autoencoder_train = autoencoder.fit_generator(patch_generator(addrs,
                                               validation_data=patch_generator(addrs,
                                                                               patch_size,
                                                                               validation_per*batch_sz,
+                                                                              numof_test_images,
                                                                               resolution,
                                                                               'test'),
                                               validation_steps=validation_steps_,

@@ -12,13 +12,13 @@ from random import randint
 def make_rand_list(addrs, array_length, train_per):
     
     train_test = np.zeros(shape=array_length)
-    c = 0
-    while c < train_per*array_length:  # train_per = the percentage of openslise slides we will use for train, e.g 80%
+    train = 0
+    while train < train_per*array_length:  # train_per = the percentage of openslise slides we will use for train, e.g 80%
         r = randint(0, array_length-1)
         if train_test[r] == 0:
             train_test[r] = 1
-            c += 1
+            train += 1
     
     dictoftrain_tests = {i: 'train' if train_test[i] == 1 else 'test' for i in range(0, len(train_test))}
     np.save(addrs+"train_test_list", dictoftrain_tests)
-    return
+    return train

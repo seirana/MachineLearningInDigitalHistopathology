@@ -6,8 +6,9 @@ import random
 from OpenSlide_reader import read_openslide
 
 
-def get_patch_tissuepeices(addrs, slide_th, th_slide_info, slide_patch_num, batch_data, base_level, resolution,
-                           patch_size, tt):
+def get_patch_tissuepeices(addrs, slide_th, th_slide_info, slide_patch_num, 
+                           batch_data, base_level, resolution, patch_size, tt):
+    patch_list = np.load(addrs+'patch_train_test_list.npy')
     tissues_slides = np.load(addrs+'tissues_slides_space_percentage.npy')  # is a list
     whole_space = 0
     for i in range(0, len(tissues_slides[slide_th])):
@@ -41,12 +42,26 @@ def get_patch_tissuepeices(addrs, slide_th, th_slide_info, slide_patch_num, batc
             # check if the random numbers are inside the convex hull
             if margins.item().get(tissue_th)[0][0] <= r_w <= margins.item().get(tissue_th)[0][1]:
                 if margins.item().get(tissue_th)[r_w+1-margins.item().get(tissue_th)[0][0]][0] <= r_h \
-                        <= margins.item().get(tissue_th)[r_w+1-margins.item().get(tissue_th)[0][0]][1]:
-                    r_h_mul = random.randint(0, mul-1)
-                    r_w_mul = random.randint(0, mul-1)
+                        <= margins.item().get(tissue_th)[r_w+1-margins.item().get(tissue_th)[0][0]][1]: 
+                            
+                    #this is to be sure that the randomly selected patches do not have overlap    
+                    while True:      
+                        r_h_mul = random.randint(0, mul-1)
+                        for patch in patch_list.item():
+                            if slide_th == patch['slide_number']:
+                                if -256 < r_h*mul+r_h_mul - patch['height'] < 256:
+                                    r_w_mul = random.randint(0, mul-1)
+                                    if -256 < r_w*mul+r_w_mul - patch['weidth'] < 256:    
+                                        break
+        
                     # multiply by 2**(base_level-resolution-base_level)
-                    patch = read_openslide(addrs, th_slide_info['slide_ID'], r_h*mul+r_h_mul, r_w*mul+r_w_mul,
-                                           patch_size, tt)  # extract patches
+                    patch = read_openslide(addrs, 
+                                           slide_th, 
+                                           th_slide_info['slide_ID'], 
+                                           r_h*mul+r_h_mul, 
+                                           r_w*mul+r_w_mul,
+                                           patch_size, 
+                                           tt)  # extract patches
                     generated_patches += 1
                     batch_data.append(patch)
                     

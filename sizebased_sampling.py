@@ -7,7 +7,7 @@ import numpy as np
 import random
 
 
-def make_random_list(addrs, batch_size, tt):
+def make_random_list(addrs, batch_sz, tt):
     tissues_slides = np.load(addrs+'tissues_slides_space_percentage.npy')  # is a list
     train_test = np.load(addrs+'train_test_list.npy')[()]  # is a list
     slides = len(tissues_slides)  # number of slides
@@ -42,26 +42,41 @@ def make_random_list(addrs, batch_size, tt):
             weight[i] = w
             weight_list_length += weight[i]
     weight_list_length = int(weight_list_length)
-    lst = []    
-    while len(lst) < weight_list_length-1:
-        r = random.randint(1, batch_size)
-        if r not in lst:
-            lst.append(r)
-     
-    lst = np.sort(lst)
-    lst_s = np.zeros(weight_list_length)
-    lst_s[0] = lst[0]
-    for k in range(1, weight_list_length-1):
-        lst_s[k] = lst[k] - lst[k-1]
+
+    if tt == 'train':
+        if batch_sz % weight_list_length == 0:
+            train_list = np.zeros(weight_list_length)
+        else: 
+            train_list = np.load(addrs+'train_ranselected_weightbased_list.npy')
+            
+        while True:
+            r = random.randint(0, weight_list_length -1)
+            if train_list[r] == 0:
+                train_list[r] = 1
+                break
+                
+        while r - weight[i] > 0:
+            r -= weight[i]
+            i += 1
+        random_selected_slide = i
         
-    lst_s[weight_list_length-1] = batch_size - lst[weight_list_length-2]
-    slide_weight = np.zeros(slides)
-
-    cnt = 0
-    for i in range(0, slides):
-         if train_test[i] == tt:
-            for j in range(cnt, cnt+int(weight[i])):
-                slide_weight[i] += lst_s[j]
-            cnt += int(weight[i])
-
-    return slide_weight
+    if tt == 'test':
+        if batch_sz % weight_list_length == 0:
+            test_list = np.zeros(weight_list_length)
+        else: 
+            test_list = np.load(addrs+'test_ranselected_weightbased_list.npy')
+            
+        while True:
+            r = random.randint(0, weight_list_length -1)
+            if test_list[r] == 0:
+                test_list[r] = 1
+                break
+                
+        while r - weight[i] > 0:
+            r -= weight[i]
+            i += 1
+        random_selected_slide = i
+    
+    np.save(addrs+'train_ranselected_weightbased_list.npy', train_list)
+    np.save(addrs+'test_ranselected_weightbased_list.npy', test_list)          
+    return random_selected_slide
