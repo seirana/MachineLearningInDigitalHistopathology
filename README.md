@@ -1,2 +1,1 @@
 # MachineLearningInDigitalHistopathology
-The PhD project
