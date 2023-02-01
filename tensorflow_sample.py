@@ -56,11 +56,6 @@ mi = np.min(images)
 images = (images - mi) / (m - mi)
 
 
-"""
-In order for the model to generalize well, we split the data into two parts: a training and a 
-validation set. We will train the model on 80% of the data and validate it on 20% of the remaining 
-training data.
-"""
 ##from sklearn.model_selection import train_test_split
 train_X,valid_X,train_ground,valid_ground = train_test_split(images,images,test_size=0.2,random_state=13)
 
@@ -246,7 +241,7 @@ The history object is returned from calls to the fit() function used to train th
 Metrics are stored in a dictionary in the history member of the object returned.
 """
 
-img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
+img_addrs = "/home/seirana/MaLTT/Immunohistochemistry/Test/"
 test_file = "01A-D_MaLTT_Ther72h_F4-80_MaLTT_Ther72h_F4-80_01A-D - 2015-07-04 10.38.21_patch_list0.npy"
 test_file_name = img_addrs + test_file        
 test_patch_list = np.load(test_file_name)
@@ -272,7 +267,7 @@ The history object is returned from calls to the fit() function used to train th
 Metrics are stored in a dictionary in the history member of the object returned.
 """
 
-img_addrs = "/home/seirana/Disselhorst_Jonathan/MaLTT/Immunohistochemistry/Test/"
+img_addrs = "/home/seirana/MaLTT/Immunohistochemistry/Test/"
 test_file = "31A-D_MaLTT_Ctrl24h_Casp3_2016-06-07_patch_list0.npy"
 test_file_name = img_addrs + test_file        
 test_patch_list = np.load(test_file_name)
