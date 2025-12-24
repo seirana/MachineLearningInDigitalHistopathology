@@ -84,7 +84,9 @@ Macenko stain normalization
 
 t-SNE for visual embedding
 
-## Conclusion: We successfully implemented a fully unsupervised histopathology pipeline for detecting cancerous regions in WSIs. Despite the lack of labels, the system learned meaningful feature representations and reliably isolated cancer clusters. The process is extensible to semi-supervised refinement and expert feedback loops for future work.
+## Conclusion
+
+We successfully implemented a fully unsupervised histopathology pipeline for detecting cancerous regions in WSIs. Despite the lack of labels, the system learned meaningful feature representations and reliably isolated cancer clusters. The process is extensible to semi-supervised refinement and expert feedback loops for future work.
 
 ## Next Steps:
 
