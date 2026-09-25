@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from histopathology_pipeline.wsi import discover_slides
 
 
