@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [master, quality-upgrade]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package and development tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint maintained code
+        run: python -m ruff check src tests benchmarks scripts
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Check CLI
+        run: histopathology-extract --help
+
+      - name: Report legacy portability debt
+        if: matrix.python-version == '3.12'
+        run: python scripts/audit_legacy_paths.py
+
+  benchmark:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run streaming benchmark
+        run: |
+          python benchmarks/benchmark_streaming.py \
+            --slide-width 8192 \
+            --slide-height 8192 \
+            --mask-width 512 \
+            --mask-height 512 \
+            --patch-size 256 \
+            --stride 128 \
+            --max-patches 250 \
+            --seed 42 \
+            --output benchmarks/results/ci_streaming.json
+
+      - name: Upload benchmark result
+        uses: actions/upload-artifact@v4
+        with:
+          name: streaming-benchmark
+          path: benchmarks/results/ci_streaming.json
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build OpenSlide container
+        run: docker build -t digital-histopathology-ci .

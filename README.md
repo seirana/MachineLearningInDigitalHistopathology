@@ -1,97 +1,298 @@
-# MachineLearningInDigitalHistopathology
+# Machine Learning in Digital Histopathology
 
-## Dataset:
+This repository contains the original 2018–2019 digital-histopathology research scripts together with a new maintained package for reproducible, memory-aware whole-slide-image (WSI) patch extraction.
 
-510 WSIs of tissue samples from a specific cancer type
+The modernization deliberately preserves the historical scripts while separating them from code that is intended to be portable, testable, and reusable.
 
-Each slide ~2.5 GB in size, scanned at high resolution (Hamamatsu format)
+## Project context
 
-Pipeline Overview: The pipeline consisted of the following stages:
+The historical project explored an unsupervised WSI workflow that included:
 
-## Artifact Removal
+- tissue/background preprocessing;
+- artifact handling;
+- tissue-region segmentation;
+- patch extraction;
+- patch augmentation;
+- convolutional-autoencoder experiments;
+- unsupervised feature clustering;
+- mapping patch-level outputs back to slides.
 
-Pen markings were detected using grayscale thresholding; these regions were masked prior to analysis.
+The original project notes describe work on hundreds of large Hamamatsu-format WSIs and 256×256-pixel patch extraction. The raw WSIs and validation materials are not included in this public repository, so historical performance/result claims cannot be independently reproduced from this repository alone.
 
-Folded tissue regions were detected based on local intensity variance and morphological cues. All fold regions were removed from analysis using a custom thresholding algorithm.
+## What is maintained now
 
-## Tissue Region Segmentation
+The maintained code lives under:
 
-WSIs were downsampled and converted to LAB color space.
+```text
+src/histopathology_pipeline/
+```
 
-Tissue regions were extracted via Otsu's thresholding on the lightness channel, combined with morphological operations and convex hull masking.
+It currently provides:
 
-## Stain Normalization
+- typed patch-extraction configuration;
+- recursive, portable WSI discovery;
+- optional lazy OpenSlide access;
+- mapping of downsampled tissue masks to level-0 slide coordinates;
+- streaming coordinate generation;
+- O(k)-memory reservoir sampling when a maximum patch count is requested;
+- deterministic train/test splits;
+- deterministic rotations/reflections;
+- streaming patch extraction directly to disk;
+- a CSV manifest with patch coordinates, tissue fraction, and augmentation metadata;
+- automated tests, CI, Docker, and a reproducible synthetic benchmark.
 
-All patches were normalized using the Macenko method with a high-quality reference slide.
+The modern path is intentionally focused on data/patch engineering first. Historical autoencoder, clustering, and preprocessing experiments remain available as archival research code until they can be migrated without silently changing their scientific behavior.
 
-This reduced H&E stain variability and ensured uniform appearance across slides.
+## Architecture
 
-## Patch Extraction
+```text
+WSI file
+   |
+   | dimensions only
+   v
+downsampled tissue mask
+   |
+   v
+stream candidate grid coordinates
+   |
+   +---- no patch limit ----------> lazy coordinate iterator
+   |
+   +---- max patch limit ---------> seeded reservoir sampling, O(k) memory
+                                         |
+                                         v
+                                   OpenSlide read_region
+                                         |
+                                         v
+                                optional seeded transform
+                                         |
+                                         v
+                              PNG patch + CSV manifest
+```
 
-Tissue masks guided patch extraction.
+This design avoids loading a complete multi-gigabyte WSI into a NumPy array.
 
-256x256 pixel patches were extracted at 20x magnification.
+## Repository structure
 
-Only patches with >80% tissue content were retained.
+```text
+.
+├── src/
+│   └── histopathology_pipeline/
+│       ├── augmentation.py
+│       ├── cli.py
+│       ├── config.py
+│       ├── mask.py
+│       ├── pipeline.py
+│       ├── sampling.py
+│       └── wsi.py
+├── tests/
+├── benchmarks/
+│   └── benchmark_streaming.py
+├── scripts/
+│   └── audit_legacy_paths.py
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── Dockerfile
+├── pyproject.toml
+├── requirements.txt
+├── BENCHMARKS.md
+├── LEGACY.md
+├── MIGRATION.md
+└── historical root-level research scripts
+```
 
-## Dimensionality Reduction via Autoencoder
+## Installation
 
-A convolutional autoencoder was trained from scratch on a representative patch subset.
+### Core package
 
-Encoder reduced each patch to a 128-dimensional feature vector.
+```bash
+git clone https://github.com/seirana/MachineLearningInDigitalHistopathology.git
+cd MachineLearningInDigitalHistopathology
 
-Reconstruction error was used to verify patch fidelity.
+python -m venv .venv
+source .venv/bin/activate
 
-## Unsupervised Feature Clustering
+python -m pip install --upgrade pip
+python -m pip install -e .
+```
 
-Feature vectors were clustered using mini-batch K-Means.
+The core package is intentionally lightweight and can be tested without OpenSlide.
 
-Optimal cluster number (k=6) was selected via silhouette analysis.
+### WSI extraction support
 
-Visual inspection and t-SNE plots showed clear separation of clusters by tissue type.
+For real NDPI/SVS/TIFF reading, install the OpenSlide system library and the optional Python dependency.
 
-## Cancer Cell Identification
+On Debian/Ubuntu-like systems:
 
-Clusters were reviewed by an expert pathologist.
+```bash
+sudo apt-get update
+sudo apt-get install -y libopenslide0
 
-Two clusters were consistently enriched for pleomorphic nuclei, high N/C ratio, and dense epithelial sheets characteristic of cancer.
+python -m pip install -e ".[wsi]"
+```
 
-These clusters were marked as "likely cancerous."
+## Patch extraction
 
-## WSI-Level Visualization
+The maintained CLI expects:
 
-Cluster assignments were mapped back to original WSIs.
+1. a WSI file;
+2. a grayscale tissue-mask image;
+3. an output directory.
 
-Heatmaps of predicted cancer regions were overlaid on full slides.
+The mask can be downsampled. Its dimensions do not need to match the level-0 WSI; the package maps mask pixels to level-0 coordinates using the WSI dimensions.
 
-High correspondence was observed between unsupervised tumor predictions and typical tumor regions, even without labels.
+Example:
 
-## Results:
+```bash
+histopathology-extract \
+  --slide /path/to/slide.ndpi \
+  --mask /path/to/tissue_mask.png \
+  --output-dir outputs/slide_001 \
+  --patch-size 256 \
+  --stride 256 \
+  --min-tissue-fraction 0.80 \
+  --max-patches 5000 \
+  --seed 42
+```
 
-Successfully processed 510 WSIs using an entirely unsupervised workflow.
+Add `--augment` to apply one seeded rotation/reflection per selected patch.
 
-Reconstructed tissue maps showed >90% agreement with pathologist expectations in a sample validation set.
+The output directory contains patch PNG files and:
 
-The pipeline was scalable, interpretable, and compatible with expert-in-the-loop review.
+```text
+manifest.csv
+```
 
-## Technologies Used:
+with the level-0 coordinates, patch size, estimated tissue fraction, and transform name.
 
-Python, PyTorch, OpenSlide, NumPy, Scikit-learn
+## Why reservoir sampling matters
 
-HistoQC for quality control
+A large WSI can contain a very large number of eligible candidate positions. Building a full Python list of every eligible coordinate is unnecessary when only a bounded sample is required.
 
-Macenko stain normalization
+When `--max-patches K` is used, the package applies reservoir sampling:
 
-t-SNE for visual embedding
+```text
+memory complexity ≈ O(K)
+```
 
-## Conclusion
+instead of materializing all eligible candidate coordinates.
 
-We successfully implemented a fully unsupervised histopathology pipeline for detecting cancerous regions in WSIs. Despite the lack of labels, the system learned meaningful feature representations and reliably isolated cancer clusters. The process is extensible to semi-supervised refinement and expert feedback loops for future work.
+The implementation is deterministic for a fixed seed.
 
-## Next Steps:
+## Testing
 
-Integrate MONAI Label or Slideflow for interactive annotation.
+Install the development dependencies:
 
-Apply self-supervised learning (e.g. SimCLR, DINO) to improve feature quality.
+```bash
+python -m pip install -e ".[dev]"
+```
 
-Incorporate uncertainty estimation and confidence heatmaps.
+Run:
+
+```bash
+python -m pytest
+python -m ruff check src tests benchmarks scripts
+```
+
+The tests cover:
+
+- configuration validation;
+- weighted allocation;
+- deterministic reservoir sampling;
+- deterministic train/test splitting;
+- all eight rotation/reflection transforms;
+- downsampled mask mapping;
+- tissue-fraction filtering;
+- WSI discovery;
+- streaming patch writing and manifest generation.
+
+Historical root-level scripts are not collected as the modern test suite.
+
+## Continuous integration
+
+GitHub Actions tests the maintained package on Python 3.10, 3.11, and 3.12.
+
+CI also:
+
+- checks the command-line interface;
+- runs a synthetic streaming benchmark;
+- uploads benchmark JSON as a workflow artifact;
+- builds the OpenSlide Docker image.
+
+## Benchmarking
+
+A reproducible synthetic benchmark is provided so memory/throughput behavior can be measured without distributing private or multi-gigabyte WSI files:
+
+```bash
+python benchmarks/benchmark_streaming.py \
+  --output benchmarks/results/streaming.json
+```
+
+See [BENCHMARKS.md](BENCHMARKS.md).
+
+The benchmark reports measured runtime and Python-tracked peak memory for coordinate selection. It does not claim to represent WSI disk or OpenSlide decoding throughput.
+
+## Docker
+
+Build:
+
+```bash
+docker build -t digital-histopathology .
+```
+
+Run:
+
+```bash
+docker run --rm \
+  -v "/path/to/data:/data:ro" \
+  -v "$PWD/outputs:/outputs" \
+  digital-histopathology \
+  --slide /data/slide.ndpi \
+  --mask /data/tissue_mask.png \
+  --output-dir /outputs/slide_001 \
+  --patch-size 256 \
+  --stride 256 \
+  --min-tissue-fraction 0.80 \
+  --max-patches 5000 \
+  --seed 42
+```
+
+The WSI input mount is read-only in this example.
+
+## Historical scripts
+
+Many root-level files are original exploratory scripts. Some contain user-specific absolute paths, older APIs, or import-time execution patterns.
+
+They remain in the repository to preserve research history, but they are not presented as production-quality code.
+
+See:
+
+- [LEGACY.md](LEGACY.md) for the boundary between archival and maintained code;
+- [MIGRATION.md](MIGRATION.md) for the mapping from historical scripts to the maintained architecture.
+
+An informational audit can be run with:
+
+```bash
+python scripts/audit_legacy_paths.py
+```
+
+## Reproducibility principles
+
+The maintained package follows several explicit rules:
+
+- no hard-coded workstation paths;
+- local seeded random-number generators;
+- no process-global random-state mutation;
+- synthetic tests that do not depend on private WSIs;
+- bounded-memory coordinate sampling;
+- explicit configuration through CLI arguments and dataclasses;
+- package/dependency metadata in `pyproject.toml`;
+- CI across multiple Python versions.
+
+## Scope and limitations
+
+This modernization does not convert the historical autoencoder or clustering experiments into a new model and does not invent new scientific results.
+
+The current maintained package covers the WSI patch-engineering layer. Stain normalization, model training, self-supervised learning, clustering, uncertainty estimation, and slide-level model evaluation should be modernized separately and validated against appropriate datasets.
+
+This repository is research software and is not a clinical diagnostic system.
