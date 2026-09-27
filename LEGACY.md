@@ -1,10 +1,12 @@
 # Legacy research scripts
 
-The root-level Python files in this repository are preserved as historical research artifacts from the original 2018–2019 project.
+The Python files under `legacy/` are preserved as historical research artifacts from the original 2018–2019 project.
 
 They are **not** the maintained software interface.
 
 ## Why they are still here
+
+They have been moved out of the repository root so the main project page presents the maintained package and project documentation first.
 
 The original scripts document how the research workflow evolved: WSI reading, tissue segmentation, patch sampling, augmentation, autoencoder experiments, clustering, and exploratory analysis. Removing them would erase useful project history.
 
@@ -47,11 +49,11 @@ The modern code contains no user-specific absolute paths.
 
 | Historical script | Maintained replacement / direction |
 |---|---|
-| `OpenSlide_reader.py` | `histopathology_pipeline.wsi.OpenSlideSource` |
-| `Random_Rotation_Mirroring.py` | `histopathology_pipeline.augmentation` |
-| `sizebased_sampling.py` | `histopathology_pipeline.sampling` |
-| `get_patch_tissues.py` | `histopathology_pipeline.mask` + `pipeline` |
-| `patch_batch_generator.py` | streaming extraction in `pipeline.py` |
+| `legacy/OpenSlide_reader.py` | `histopathology_pipeline.wsi.OpenSlideSource` |
+| `legacy/Random_Rotation_Mirroring.py` | `histopathology_pipeline.augmentation` |
+| `legacy/sizebased_sampling.py` | `histopathology_pipeline.sampling` |
+| `legacy/get_patch_tissues.py` | `histopathology_pipeline.mask` + `pipeline` |
+| `legacy/patch_batch_generator.py` | streaming extraction in `pipeline.py` |
 | preprocessing prototypes | future modular preprocessing package |
 | autoencoder / clustering prototypes | retained as historical ML experiments |
 
@@ -63,4 +65,4 @@ Run:
 python scripts/audit_legacy_paths.py
 ```
 
-This reports machine-specific `/home/.../` paths still present in historical root scripts. The audit is informational: CI tests and lints the maintained package rather than pretending the archival scripts are production-ready.
+This reports machine-specific `/home/.../` paths still present in the archived scripts under `legacy/`. The audit is informational: CI tests and lints the maintained package rather than pretending the archival scripts are production-ready.

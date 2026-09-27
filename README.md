@@ -1,6 +1,6 @@
 # Machine Learning in Digital Histopathology
 
-This repository contains the original 2018–2019 digital-histopathology research scripts together with a new maintained package for reproducible, memory-aware whole-slide-image (WSI) patch extraction.
+This repository contains the original 2018–2019 digital-histopathology research scripts, archived under `legacy/`, together with a maintained package for reproducible, memory-aware whole-slide-image (WSI) patch extraction.
 
 The modernization deliberately preserves the historical scripts while separating them from code that is intended to be portable, testable, and reusable.
 
@@ -85,6 +85,8 @@ This design avoids loading a complete multi-gigabyte WSI into a NumPy array.
 │       ├── sampling.py
 │       └── wsi.py
 ├── tests/
+├── legacy/
+│   └── historical 2018–2019 research scripts
 ├── benchmarks/
 │   └── benchmark_streaming.py
 ├── scripts/
@@ -98,7 +100,7 @@ This design avoids loading a complete multi-gigabyte WSI into a NumPy array.
 ├── BENCHMARKS.md
 ├── LEGACY.md
 ├── MIGRATION.md
-└── historical root-level research scripts
+└── project documentation and configuration
 ```
 
 ## Installation
@@ -206,7 +208,7 @@ The tests cover:
 - WSI discovery;
 - streaming patch writing and manifest generation.
 
-Historical root-level scripts are not collected as the modern test suite.
+Archived scripts under `legacy/` are not collected as the modern test suite.
 
 ## Continuous integration
 
@@ -261,7 +263,7 @@ The WSI input mount is read-only in this example.
 
 ## Historical scripts
 
-Many root-level files are original exploratory scripts. Some contain user-specific absolute paths, older APIs, or import-time execution patterns.
+The original exploratory Python scripts now live under `legacy/`. Some contain user-specific absolute paths, older APIs, or import-time execution patterns.
 
 They remain in the repository to preserve research history, but they are not presented as production-quality code.
 

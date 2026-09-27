@@ -1,6 +1,6 @@
 # Modernization map
 
-This repository now separates the historical research record from a maintained, testable core.
+This repository now separates the historical research record under `legacy/` from the maintained, testable core under `src/`.
 
 ## Current modernization scope
 
